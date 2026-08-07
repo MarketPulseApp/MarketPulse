@@ -1,0 +1,273 @@
+services:
+
+  # ── PostgreSQL + TimescaleDB ─────────────────────────────────────────────────
+  postgres:
+    image: timescale/timescaledb:2.14.2-pg16
+    container_name: marketpulse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1500m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Valkey ───────────────────────────────────────────────────────────────────
+  valkey:
+    image: valkey/valkey:7.2
+    container_name: marketpulse-valkey
+    restart: unless-stopped
+    command: valkey-server --requirepass ${VALKEY_PASSWORD} --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── ChromaDB ─────────────────────────────────────────────────────────────────
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: marketpulse-chroma
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    deploy:
+      resources:
+        limits:
+          memory: 1000m
+
+  # ── SurrealDB ────────────────────────────────────────────────────────────────
+  surreal:
+    image: surrealdb/surrealdb:latest
+    container_name: marketpulse-surreal
+    restart: unless-stopped
+    user: root
+    command: start --log info --user ${SURREAL_USER} --pass ${SURREAL_PASSWORD} surrealkv:/data/surreal.db
+    ports:
+      - "8001:8000"
+    volumes:
+      - surreal_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      disable: true
+
+  # ── MinIO ────────────────────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: marketpulse-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── MongoDB ──────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: marketpulse-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./init/mongo:/docker-entrypoint-initdb.d:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1000m
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ── Elasticsearch ────────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    container_name: marketpulse-elastic
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 2000m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  # ── InfluxDB ─────────────────────────────────────────────────────────────────
+  influxdb:
+    image: influxdb:2.7
+    container_name: marketpulse-influx
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_ADMIN_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_ADMIN_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_ADMIN_TOKEN}
+    ports:
+      - "8086:8086"
+    volumes:
+      - influx_data:/var/lib/influxdb2
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── OPA (Open Policy Agent) ───────────────────────────────────────────────────
+  opa:
+    image: openpolicyagent/opa:latest
+    container_name: marketpulse-opa
+    restart: unless-stopped
+    command: run --server --log-level=info --addr=0.0.0.0:8181
+    ports:
+      - "8181:8181"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ── Prometheus ───────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: marketpulse-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: marketpulse-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  # ── Loki ─────────────────────────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:latest
+    container_name: marketpulse-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  # ── Jaeger ────────────────────────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: marketpulse-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: ":9411"
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+volumes:
+  pg_data:
+  valkey_data:
+  chroma_data:
+  surreal_data:
+  minio_data:
+  mongo_data:
+  elastic_data:
+  influx_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
