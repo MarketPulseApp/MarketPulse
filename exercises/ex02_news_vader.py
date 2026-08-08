@@ -5,6 +5,7 @@ Requires: NEWSAPI_KEY in environment.
 """
 
 import os
+
 import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
@@ -35,13 +36,15 @@ for article in articles:
     description = article.get("description") or ""
     text = f"{headline}. {description}"
     scores = analyzer.polarity_scores(text)
-    scored.append({
-        "headline": headline[:80],
-        "compound": scores["compound"],
-        "pos": scores["pos"],
-        "neg": scores["neg"],
-        "neu": scores["neu"],
-    })
+    scored.append(
+        {
+            "headline": headline[:80],
+            "compound": scores["compound"],
+            "pos": scores["pos"],
+            "neg": scores["neg"],
+            "neu": scores["neu"],
+        }
+    )
 
 # ── Step 3: Display results ──────────────────────────────────────────────────
 scored.sort(key=lambda x: x["compound"], reverse=True)

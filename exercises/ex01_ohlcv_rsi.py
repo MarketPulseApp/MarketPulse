@@ -4,9 +4,8 @@ Fetch AAPL OHLCV data and compute RSI-14 from scratch.
 Verifies understanding of: yfinance, OHLCV structure, RSI formula.
 """
 
-import yfinance as yf
 import pandas as pd
-import numpy as np
+import yfinance as yf
 
 # ── Step 1: Fetch OHLCV ──────────────────────────────────────────────────────
 ticker = yf.Ticker("AAPL")
@@ -16,6 +15,7 @@ df.index = df.index.tz_localize(None)  # Remove timezone for simplicity
 print(f"Fetched {len(df)} rows of AAPL OHLCV data")
 print(df[["Open", "High", "Low", "Close", "Volume"]].tail(3).to_string())
 print()
+
 
 # ── Step 2: RSI from scratch ──────────────────────────────────────────────────
 def compute_rsi(close: pd.Series, period: int = 14) -> pd.Series:
@@ -32,25 +32,27 @@ def compute_rsi(close: pd.Series, period: int = 14) -> pd.Series:
     loss = -delta.where(delta < 0, 0.0)
 
     # Wilder's smoothing (equivalent to EMA with alpha=1/period)
-    avg_gain = gain.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
+    avg_gain = gain.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
 
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
     return rsi
 
+
 rsi_scratch = compute_rsi(df["Close"], period=14)
 
 # ── Step 3: Verify against ta ─────────────────────────────────────────────────
-from ta.momentum import RSIIndicator
+from ta.momentum import RSIIndicator  # noqa: E402
+
 rsi_ta = RSIIndicator(close=df["Close"], window=14).rsi()
 
 # Compare last 5 rows (first 14 rows are NaN due to warmup)
-comparison = pd.DataFrame({
-    "scratch": rsi_scratch,
-    "ta":      rsi_ta,
-    "diff":    (rsi_scratch - rsi_ta).abs()
-}).dropna().tail(5)
+comparison = (
+    pd.DataFrame({"scratch": rsi_scratch, "ta": rsi_ta, "diff": (rsi_scratch - rsi_ta).abs()})
+    .dropna()
+    .tail(5)
+)
 
 print("RSI comparison (last 5 trading days):")
 print(comparison.round(4).to_string())
@@ -62,7 +64,7 @@ print(f"\n✓ RSI from scratch matches ta (max diff: {max_diff:.6f})")
 # ── Step 4: Summary ──────────────────────────────────────────────────────────
 latest_rsi = rsi_scratch.iloc[-1]
 latest_close = df["Close"].iloc[-1]
-print(f"\nAAPL summary:")
+print("\nAAPL summary:")
 print(f"  Latest close: ${latest_close:.2f}")
 print(f"  RSI-14:       {latest_rsi:.1f}")
 if latest_rsi > 70:

@@ -4,9 +4,10 @@ Verify that all MarketPulse dependencies are importable.
 Expected output: all green checkmarks, no red X marks.
 """
 
-import sys
 import subprocess
+import sys
 from dataclasses import dataclass
+
 
 @dataclass
 class Check:
@@ -14,50 +15,51 @@ class Check:
     module: str
     subprocess: bool = False
 
+
 CHECKS = [
-    Check("FastAPI",           "fastapi"),
-    Check("Pydantic",          "pydantic"),
-    Check("asyncpg",           "asyncpg"),
-    Check("Redis (valkey)",    "redis"),
-    Check("ChromaDB",          "chromadb"),
-    Check("Motor (MongoDB)",   "motor"),
-    Check("Elasticsearch",     "elasticsearch"),
-    Check("InfluxDB client",   "influxdb_client"),
-    Check("MinIO",             "minio"),
-    Check("PyTorch",           "torch"),
-    Check("XGBoost",           "xgboost"),
-    Check("LightGBM",          "lightgbm"),
-    Check("Transformers",      "transformers"),
-    Check("VADER",             "vaderSentiment"),
-    Check("sentence-trans.",   "sentence_transformers"),
-    Check("grpcio",            "grpc"),
-    Check("pandas",            "pandas"),
-    Check("ta",                "ta"),
-    Check("numpy",             "numpy"),
-    Check("PRAW",              "praw"),
-    Check("feedparser",        "feedparser"),
-    Check("yfinance",          "yfinance"),
-    Check("ARQ",               "arq"),
-    Check("discord.py",        "discord"),
-    Check("mplfinance",        "mplfinance"),
-    Check("Pillow",            "PIL"),
-    Check("pyotp",             "pyotp"),
-    Check("structlog",         "structlog"),
-    Check("msgpack",           "msgpack"),
-    Check("DuckDB",            "duckdb"),
-    Check("ZODB",              "ZODB"),
-    Check("NetworkX",          "networkx"),
-    Check("reportlab",         "reportlab"),
-    Check("tenacity",          "tenacity"),
-    Check("Hypothesis",        "hypothesis"),
-    Check("Locust",            "locust",    subprocess=True),
-    Check("cassandra-driver",  "cassandra"),
-    Check("neo4j driver",      "neo4j"),
-    Check("web3.py",           "web3"),
-    Check("qrcode",            "qrcode"),
-    Check("Alembic",           "alembic"),
-    Check("aiosmtplib",        "aiosmtplib"),
-    Check("Twilio",            "twilio"),
+    Check("FastAPI", "fastapi"),
+    Check("Pydantic", "pydantic"),
+    Check("asyncpg", "asyncpg"),
+    Check("Redis (valkey)", "redis"),
+    Check("ChromaDB", "chromadb"),
+    Check("Motor (MongoDB)", "motor"),
+    Check("Elasticsearch", "elasticsearch"),
+    Check("InfluxDB client", "influxdb_client"),
+    Check("MinIO", "minio"),
+    Check("PyTorch", "torch"),
+    Check("XGBoost", "xgboost"),
+    Check("LightGBM", "lightgbm"),
+    Check("Transformers", "transformers"),
+    Check("VADER", "vaderSentiment"),
+    Check("sentence-trans.", "sentence_transformers"),
+    Check("grpcio", "grpc"),
+    Check("pandas", "pandas"),
+    Check("ta", "ta"),
+    Check("numpy", "numpy"),
+    Check("PRAW", "praw"),
+    Check("feedparser", "feedparser"),
+    Check("yfinance", "yfinance"),
+    Check("ARQ", "arq"),
+    Check("discord.py", "discord"),
+    Check("mplfinance", "mplfinance"),
+    Check("Pillow", "PIL"),
+    Check("pyotp", "pyotp"),
+    Check("structlog", "structlog"),
+    Check("msgpack", "msgpack"),
+    Check("DuckDB", "duckdb"),
+    Check("ZODB", "ZODB"),
+    Check("NetworkX", "networkx"),
+    Check("reportlab", "reportlab"),
+    Check("tenacity", "tenacity"),
+    Check("Hypothesis", "hypothesis"),
+    Check("Locust", "locust", subprocess=True),
+    Check("cassandra-driver", "cassandra"),
+    Check("neo4j driver", "neo4j"),
+    Check("web3.py", "web3"),
+    Check("qrcode", "qrcode"),
+    Check("Alembic", "alembic"),
+    Check("aiosmtplib", "aiosmtplib"),
+    Check("Twilio", "twilio"),
 ]
 
 passed = 0
