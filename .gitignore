@@ -1,34 +1,13 @@
-# Virtual environment
-.venv/
-
-# Python cache
 __pycache__/
-*.pyc
-
-# Environment files
+*.py[cod]
+*.egg-info/
 .env
-.env.local
-
-# Embedded database files
-data/
-
-# Secrets (Astra SCB zip, certs, etc.)
+.venv/
+venv/
+*.zip
 secrets/
-
-# SQLite / ZODB / other DB files
-*.db
-*.fs
-
-# macOS
-.DS_Store
-
-# Node
-node_modules/
-
-# Build output
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
 dist/
 build/
-
-# Test coverage
-.coverage
-htmlcov/

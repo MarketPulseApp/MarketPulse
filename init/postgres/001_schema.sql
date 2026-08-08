@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS alert_configs (
 -- ── API Quotas ────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS api_quotas (
     source          TEXT PRIMARY KEY,
-    daily_limit     INT NOT NULL,
+    daily_limit     INT NULL,
     monthly_limit   INT,
     notes           TEXT
 );

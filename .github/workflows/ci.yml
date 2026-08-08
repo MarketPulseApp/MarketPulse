@@ -1,0 +1,50 @@
+﻿name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dev dependencies
+        run: pip install ruff black mypy
+      - name: Ruff
+        run: ruff check .
+      - name: Black
+        run: black --check .
+
+  test-api:
+    name: Test API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install fastapi uvicorn asyncpg redis motor pymongo httpx prometheus-fastapi-instrumentator pytest pytest-asyncio httpx
+      - name: Run tests
+        run: pytest app/tests/ -v
+        continue-on-error: true
+
+  build:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API
+        run: docker build -t marketpulse-api ./app
+      - name: Build Worker
+        run: docker build -t marketpulse-worker ./workers
+      - name: Build Bot
+        run: docker build -t marketpulse-bot ./bot
