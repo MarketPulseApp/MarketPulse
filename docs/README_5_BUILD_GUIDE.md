@@ -310,16 +310,16 @@ print(f'Plugins registered: {len(plugins)}')
 **Goal:** All core business entity classes defined and tested. These are the objects the
 entire application will work with.
 
-- [ ] 3.1 Implement `app/domain/ticker.py` — `Ticker`, `StockTicker`, `CryptoTicker`, `IndexTicker`
+- [x] 3.1 Implement `app/domain/ticker.py` — `Ticker`, `StockTicker`, `CryptoTicker`, `IndexTicker`
       (Python dataclasses; ZODB-persistent versions come in Phase 4).
-- [ ] 3.2 Implement `app/domain/prediction.py` — `Prediction`, `HorizonPrediction`,
+- [x] 3.2 Implement `app/domain/prediction.py` — `Prediction`, `HorizonPrediction`,
       `PredictionOutcome`. Include `is_actionable()` method (returns True if confidence ≥ 75%).
-- [ ] 3.3 Implement `app/domain/sentiment.py` — `SentimentScore`, `NewsArticle`, `RedditPost`.
-- [ ] 3.4 Implement `app/domain/alert.py` — `Alert`, `AlertConfig`, `NotificationPreference`,
+- [x] 3.3 Implement `app/domain/sentiment.py` — `SentimentScore`, `NewsArticle`, `RedditPost`.
+- [x] 3.4 Implement `app/domain/alert.py` — `Alert`, `AlertConfig`, `NotificationPreference`,
       `DeliveryResult`.
-- [ ] 3.5 Implement `app/domain/watchlist.py` — `WatchList`, `WatchListEntry`.
-- [ ] 3.6 Implement `app/domain/quota.py` — `APIQuota`, `QuotaStatus`.
-- [ ] 3.7 Implement `app/domain/feature_vector.py` — `FeatureVector` with validation that
+- [x] 3.5 Implement `app/domain/watchlist.py` — `WatchList`, `WatchListEntry`.
+- [x] 3.6 Implement `app/domain/quota.py` — `APIQuota`, `QuotaStatus`.
+- [x] 3.7 Implement `app/domain/feature_vector.py` — `FeatureVector` with validation that
       all values are finite floats and the schema version matches the expected constant.
 - [ ] 3.8 Write unit tests for all domain objects. Focus on edge cases:
       - `Prediction.is_actionable()` returns False for confidence = 74.9, True for 75.0.

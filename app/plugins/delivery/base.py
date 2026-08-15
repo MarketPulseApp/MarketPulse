@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from app.domain.alert import DeliveryResult
+
 
 @dataclass
 class AlertPayload:
@@ -20,19 +22,6 @@ class AlertPayload:
     triggered_at: datetime
     symbol: str | None = None
     metadata: dict = field(default_factory=dict)
-
-
-@dataclass
-class DeliveryResult:
-    """
-    Outcome of a single delivery attempt.
-    Never raises - a failed delivery returns success=False with an error message.
-    """
-
-    success: bool
-    channel: str
-    error: str | None = None
-    delivered_at: datetime | None = None
 
 
 class AlertDeliveryPlugin(ABC):
