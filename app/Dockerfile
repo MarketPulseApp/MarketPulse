@@ -33,6 +33,7 @@ RUN pip install --no-cache-dir \
     psycopg2-binary==2.9.9 \
     praw==8.0.2 \
     feedparser==6.0.14 \
+    vaderSentiment==3.3.2 \
     newsapi-python==0.2.7 \
     elasticsearch==9.5.0 \
     "numpy<2" \
@@ -41,4 +42,5 @@ RUN pip install --no-cache-dir \
 COPY . /opt/marketpulse/app/
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
 
