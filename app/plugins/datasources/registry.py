@@ -1,19 +1,31 @@
 import json
+import threading
 
 from app.infrastructure import valkey
 from app.plugins.datasources.base import DataSourcePlugin
 from app.plugins.datasources.generic import GenericRestAPIPlugin, GenericRSSPlugin
 from app.plugins.datasources.middleware import QuotaMiddleware
 
+_static_loaded = False
+_static_lock = threading.Lock()
 
 async def get_enabled_datasources() -> list[DataSourcePlugin]:
     """
     Reads Valkey for registered data sources and dynamically instantiates them.
-    A registered source in Valkey might look like:
-    Key: "datasource:custom:my_news_api"
-    Value: {"type": "rest_api", "url": "...", "token": "...", "daily_limit": 100}
+    Also returns static plugins.
     """
+    global _static_loaded
+    
+    from app.plugins import load_all_plugins, get_enabled_datasources as get_static_datasources
+    with _static_lock:
+        if not _static_loaded:
+            load_all_plugins()
+            _static_loaded = True
+
     plugins = []
+    
+    static_plugins = get_static_datasources({})
+    plugins.extend(static_plugins)
 
     if valkey.redis is None:
         return plugins
@@ -53,22 +65,16 @@ async def get_enabled_datasources() -> list[DataSourcePlugin]:
                 plugins.append(wrapped_plugin)
             except Exception as e:
                 import logging
-
                 logging.getLogger(__name__).error(f"Error loading plugin {key}: {e}")
 
         if int(cursor) == 0:
             break
 
-    # Normally we'd also load static plugins here if they are enabled via feature flags
-    # ...
-
     return plugins
 
-
 async def register_datasource(source_name: str, config: dict):
-    """
-    Registers a new data source dynamically via the UI.
-    """
     if valkey.redis:
         key = f"datasource:custom:{source_name}"
         await valkey.redis.set(key, json.dumps(config))
+
+
