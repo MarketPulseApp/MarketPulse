@@ -31,6 +31,7 @@ def load_all_plugins() -> None:
                 isinstance(attr, type)
                 and issubclass(attr, DataSourcePlugin)
                 and attr is not DataSourcePlugin
+                and attr.__name__ not in ('GenericRestAPIPlugin', 'GenericRSSPlugin')
             ):
                 instance = attr()
                 register_datasource(instance)
@@ -63,3 +64,4 @@ def get_enabled_delivery_plugins(
 ) -> dict[str, AlertDeliveryPlugin]:
     flags = flags or {}
     return {name: p for name, p in _delivery_registry.items() if flags.get(p.feature_flag, True)}
+
