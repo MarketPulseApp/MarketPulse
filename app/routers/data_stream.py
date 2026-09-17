@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import get_current_active_user
 from app.domain.user import User
-from app.infrastructure.valkey import redis
+import app.infrastructure.valkey as valkey
 
 router = APIRouter()
 
@@ -22,10 +22,10 @@ async def get_raw_data_stream(
 
     results = []
     try:
-        if redis is None:
+        if valkey.redis is None:
             raise HTTPException(status_code=500, detail="Valkey client not initialized")
 
-        raw_entries = await redis.lrange("raw_ingestion_feed", 0, limit - 1)
+        raw_entries = await valkey.redis.lrange("raw_ingestion_feed", 0, limit - 1)
         for entry in raw_entries:
             try:
                 parsed = json.loads(entry)
@@ -36,9 +36,11 @@ async def get_raw_data_stream(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching from Valkey: {e}")
+        import traceback; traceback.print_exc(); print(f"Error fetching from Valkey: {e}")
         raise HTTPException(
             status_code=500, detail="Internal server error while fetching data stream."
         )
 
     return results
+
+
