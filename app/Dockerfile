@@ -29,7 +29,7 @@ RUN pip install --no-cache-dir \
     aiohttp==3.9.5 \
     celery==5.4.0 \
     requests==2.34.2 \
-    websockets==12.0 \
+    websockets \
     psycopg2-binary==2.9.9 \
     praw==8.0.2 \
     feedparser==6.0.14 \
@@ -42,5 +42,6 @@ RUN pip install --no-cache-dir \
 COPY . /opt/marketpulse/app/
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
 
 
