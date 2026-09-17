@@ -11,10 +11,9 @@ services:
       - ./secrets:/opt/marketpulse/secrets
 
   worker:
-    build: 
-      context: .
-      dockerfile: ./workers/Dockerfile
+    build: ./app
     container_name: marketpulse-worker
+    command: arq app.workers.ingestion.WorkerSettings
     restart: unless-stopped
     env_file: .env
     ports:
@@ -82,3 +81,4 @@ services:
     volumes:
       - ./credentials.json:/etc/cloudflared/credentials.json:ro
       - ./config.yml:/etc/cloudflared/config.yml:ro
+

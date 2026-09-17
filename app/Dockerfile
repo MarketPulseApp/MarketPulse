@@ -22,8 +22,23 @@ RUN pip install --no-cache-dir \
     PyJWT==2.8.0 \
     passlib==1.7.4 \
     bcrypt==4.1.2 \
-    python-multipart==0.0.12
+    python-multipart==0.0.12 \
+    arq==0.26.1 \
+    cassandra-driver==3.29.1 \
+    neo4j==5.20.0 \
+    aiohttp==3.9.5 \
+    celery==5.4.0 \
+    requests==2.34.2 \
+    websockets==12.0 \
+    psycopg2-binary==2.9.9 \
+    praw==8.0.2 \
+    feedparser==6.0.14 \
+    newsapi-python==0.2.7 \
+    elasticsearch==9.5.0 \
+    "numpy<2" \
+    yfinance
 
 COPY . /opt/marketpulse/app/
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
