@@ -41,7 +41,7 @@ class UnusualVolumeEvent(BaseEvent):
     symbol: str = ""
     volume: int = 0  # current bar volume
     avg_volume: int = 0  # rolling average volume
-    multiplier: float = 0.0  # volume | avg_volume
+    multiplier: float = 0.0  # volume / avg_volume
 
 
 @dataclass
@@ -91,7 +91,7 @@ class QuotaWarningEvent(BaseEvent):
 @dataclass
 class EarningsApproachingEvent(BaseEvent):
     """
-    An earnings announcment is within the user-configured look-ahead window
+    An earnings announcement is within the user-configured look-ahead window
     """
 
     event_type: str = field(default="earnings_approaching", init=False)
@@ -169,7 +169,7 @@ class SentimentShiftedEvent(BaseEvent):
 
 # The SQLite event journal explicitly records "every prediction, alert, and training run".
 @dataclass
-class ModelRetainedEvent(BaseEvent):
+class ModelRetrainedEvent(BaseEvent):
     """
     The ML ensemble completed a retraining run
     """
@@ -212,6 +212,6 @@ ALL_EVENT_TYPES: dict[str, type] = {
     "rsi_threshold_crossed": RsiThresholdCrossedEvent,
     "price_crossed_sma": PriceCrossedSMAEvent,
     "sentiment_shifted": SentimentShiftedEvent,
-    "model_retrained": ModelRetainedEvent,
+    "model_retrained": ModelRetrainedEvent,
     "prediction_outcome_resolved": PredictionOutcomeResolvedEvent,
 }

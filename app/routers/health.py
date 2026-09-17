@@ -1,8 +1,9 @@
 import asyncpg
 import httpx
 import redis.asyncio as redis
-from core.config import settings
 from fastapi import APIRouter
+
+from app.core.config import settings
 
 router = APIRouter(tags=["health"])
 
@@ -18,7 +19,8 @@ async def health_full():
 
     # PostgreSQL
     try:
-        conn = await asyncpg.connect(settings.POSTGRES_URL, timeout=3)
+        dsn = f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DATABASE}"
+        conn = await asyncpg.connect(dsn, timeout=3)
         await conn.close()
         checks["postgres"] = "ok"
     except Exception as e:
@@ -26,7 +28,12 @@ async def health_full():
 
     # Valkey/Redis
     try:
-        r = redis.from_url(settings.VALKEY_URL, socket_connect_timeout=3)
+        r = redis.Redis(
+            host=settings.VALKEY_HOST,
+            port=settings.VALKEY_PORT,
+            password=settings.VALKEY_PASSWORD or None,
+            socket_connect_timeout=3,
+        )
         await r.ping()
         await r.aclose()
         checks["valkey"] = "ok"
@@ -43,14 +50,6 @@ async def health_full():
         checks["mongodb"] = "ok"
     except Exception as e:
         checks["mongodb"] = str(e)
-
-    # Elasticsearch
-    try:
-        async with httpx.AsyncClient(timeout=3) as client:
-            r = await client.get(f"{settings.ELASTIC_URL}/_cluster/health")
-            checks["elasticsearch"] = r.json().get("status", "unknown")
-    except Exception as e:
-        checks["elasticsearch"] = str(e)
 
     # ChromaDB
     try:

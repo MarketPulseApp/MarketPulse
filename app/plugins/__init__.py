@@ -10,6 +10,8 @@ _delivery_registry: dict[str, AlertDeliveryPlugin] = {}
 
 
 def register_datasource(plugin: DataSourcePlugin) -> None:
+    if plugin.source_name in _datasource_registry:
+        return
     _datasource_registry[plugin.source_name] = plugin
 
 
@@ -44,8 +46,8 @@ def load_all_plugins() -> None:
                 and issubclass(attr, AlertDeliveryPlugin)
                 and attr is not AlertDeliveryPlugin
             ):
-                instance = attr()
-                register_datasource(instance)
+                delivery_instance = attr()
+                register_delivery(delivery_instance)
 
 
 def get_enabled_datasources(flags: dict[str, bool]) -> list[DataSourcePlugin]:
@@ -56,9 +58,8 @@ def get_enabled_datasources(flags: dict[str, bool]) -> list[DataSourcePlugin]:
     ]
 
 
-def get_enabled_delivery_plugins(flags: dict[str, bool]) -> list[AlertDeliveryPlugin]:
-    return [
-        p
-        for p in _delivery_registry.values()
-        if (flags.get(p.feature_flag, True))  # default enabled if no flag
-    ]
+def get_enabled_delivery_plugins(
+    flags: dict[str, bool] | None = None,
+) -> dict[str, AlertDeliveryPlugin]:
+    flags = flags or {}
+    return {name: p for name, p in _delivery_registry.items() if flags.get(p.feature_flag, True)}

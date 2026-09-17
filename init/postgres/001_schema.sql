@@ -115,17 +115,20 @@ CREATE INDEX IF NOT EXISTS idx_predictions_symbol_horizon ON predictions (symbol
 CREATE INDEX IF NOT EXISTS idx_predictions_unresolved ON predictions (symbol, horizon) WHERE resolved = FALSE;
 
 -- ── Sentiment Scores (hypertable) ────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS sentiment_scores (
+CREATE TABLE sentiment_scores (
     time            TIMESTAMPTZ NOT NULL,
     symbol          TEXT NOT NULL REFERENCES tickers(symbol),
-    source          TEXT NOT NULL,   -- 'news' | 'reddit' | 'combined'
+    source_type     TEXT NOT NULL,
+    source_name     TEXT,
     score           NUMERIC(5,4) NOT NULL,
     article_count   INT NOT NULL DEFAULT 0,
     post_count      INT NOT NULL DEFAULT 0,
-    PRIMARY KEY (time, symbol, source)
+    PRIMARY KEY (time, symbol, source_type)
 );
+
 SELECT create_hypertable('sentiment_scores', 'time', chunk_time_interval => INTERVAL '1 month', if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS idx_sentiment_symbol_time ON sentiment_scores (symbol, time DESC);
+
 
 -- ── Alert Configs ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS alert_configs (

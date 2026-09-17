@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -15,10 +15,11 @@ class AlertConfig:
     threshold_value: float | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    horizons: list[str] = field(default_factory=lambda: ["1d", "3d", "7d", "30d"])
 
     def __post_init__(self):
         if len(self.channels) == 0:
-            raise ValueError
+            raise ValueError("AlertConfig must have at least one channel")
 
 
 @dataclass

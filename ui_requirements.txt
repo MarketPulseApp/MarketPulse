@@ -1,0 +1,708 @@
+
+--- docs\README_0_START_HERE.md ---
+17: | 0 | `README_0_START_HERE.md` | This file. Navigation hub, project overview, key concepts at a glance. | Always first. |
+18: | 1 | `README_1_DATABASE_SETUP.md` | Complete setup guide for all 17 databases — Docker config, schemas, env vars, verification commands, error reference, storage budget. | Phase 1 of the build. Every time you add a new Proxmox node. When a database crashes and you need the error table. |
+20: | 3 | `README_3_ALL_PARADIGMS_MASTER.md` | The complete list of all 216 sub-paradigms across 25 categories, each mapped to a specific MarketPulse feature. | When you need to verify paradigm coverage. When a reviewer asks how a specific concept is demonstrated. |
+21: | 4 | `README_4_EXPANDED_OUTLINE.md` | How to build each of the 25 admin-console paradigm panels, plus the plugin/modularity architecture and the simplicity design contract. | When implementing the admin console. When designing the plugin pattern for new data sources. When deciding how UI progressive disclosure should work. |
+22: | 5 | `README_5_BUILD_GUIDE.md` | The authoritative build checklist. Phases 0–25, numbered steps, checkboxes, VALIDATE gates, documentation links, and a Definition of Done. | Your daily driver during active development. Open it, find your phase, work top to bottom. |
+24: | 7 | `README_7_COURSE.md` | One plain-English lesson before each build phase. No assumed knowledge. Covers every concept in the build — OHLCV, RSI, FinBERT, LSTM, gRPC, PRAW, look-ahead bias, and more. | Before starting any phase you haven't built before. When you understand what to do but not why it works. |
+29: ## What MarketPulse Does, In One Paragraph
+39: your email, your SMS, or your smart speaker. The web dashboard and Discord bot give you every data
+40: point the model used, the chart, the sentiment breakdown, the news that drove it, and the model's
+41: historical accuracy on that specific ticker. The mobile app gives you the same portfolio view on
+49: ### 1. Web Dashboard
+50: **Stack:** React + Vite SPA, TypeScript, Redux Toolkit, Recharts
+53: available here: interactive candlestick charts with prediction overlays, sentiment timelines, news
+54: feed with FinBERT scores, Reddit post lists, technical indicator charts, prediction history with
+57: available from every view. The web dashboard is the only surface where you configure the system —
+62: **Stack:** React Native CLI bare workflow (no Expo), TypeScript, React Native Maps
+68: dashboard writes. Push notifications use OneSignal (not Firebase) so there is no Google
+75: feature is available via a slash command. Chart images are generated server-side with mplfinance
+76: and sent as Discord attachments. Paginated embed menus handle long lists (watchlists, news, Reddit
+84: hardware — no cloud skill host required. Handles natural-language queries like "what is the
+132: Cloudflare Tunnel exposes the FastAPI backend and web dashboard to the internet without opening
+140: ### Tier 0 — Completely Free, No Key Required
+145: | FRED API | Federal Reserve economic data: CPI, interest rates, unemployment, VIX, yield curve — free, key required but free to obtain |
+148: | RSS feeds (14+) | Reuters, Bloomberg public RSS, CNBC, MarketWatch, Seeking Alpha public, The Motley Fool public, Benzinga, Yahoo Finance RSS, CoinDesk, CoinTelegraph, Decrypt — free, no key, self-ingested with feedparser |
+173: | Neo4j AuraDB Free | 200K nodes, 400K relationships, 1 instance | Ticker relationship graph: company supply chains, sector membership, ETF holdings |
+201: | 12 | **Application error** | Any unhandled exception in the ingestion pipeline, ML sidecar, or notification system that requires human attention. |
+206: 2. **Mobile push notification** — via OneSignal mobile SDK in the React Native app
+207: 3. **Email** — SMTP, configured in settings
+254: | 50–75% | Yellow badge, caution indicator visible | No alert notifications — shown in dashboard only |
+268:   dashboard and via `/accuracy` in the Discord bot.
+272: ## Daily Building Flow
+277: ### Developer Day (You Building MarketPulse)
+281:   1. Open README_5_BUILD_GUIDE.md at your current phase.
+294:   9. Mark the build-guide checkboxes completed.
+296:   11. Run the smoke test suite; do not stop for the night with a failing test.
+342: requires only creating a new Python class that implements the `DataSourcePlugin` interface and
+383: | MinIO (charts, reports, Parquet archives) | 10 GB |
+387: | Docker images and build cache | 12 GB |
+409: | **Plugin** | A Python class implementing a defined interface (`DataSourcePlugin`, `AlertDeliveryPlugin`) that registers itself at startup and requires no changes to existing code. |
+412: | **Paradigm demo console** | An admin-only section of the web dashboard with 25 dedicated panels, one per paradigm category, each showing a live demonstration of the specific sub-paradigms implemented in that category. |
+
+--- docs\README_1_DATABASE_SETUP.md ---
+0: # MarketPulse — Database Setup Guide
+9: ## Quick Reference — All 17 Databases
+27: | 15 | NetworkX → SQLite | Embedded graph | App process | — | (file) |
+58:   pydantic pydantic-settings \
+60:   python-jose[cryptography] passlib[bcrypt] pyotp qrcode \
+91:   # --- Charts and export ---
+109: > The `ta` package requires no C dependencies and is the default choice for this project.
+125: | SurrealDB | 1 GB | Cross-domain query graph data |
+126: | MinIO objects | 10 GB | Chart images + exported reports + Parquet archives |
+133: | Build cache | 3 GB | pip cache, npm cache, Docker build layers |
+134: | Application code | 0.5 GB | Python source + React build artifacts |
+144: - Chart images: ~500MB/month (if chart generation is heavy)
+224:       --requirepass ${VALKEY_PASSWORD}
+427:       - ./observability/grafana/dashboards:/etc/grafana/provisioning/dashboards
+452:       - "16686:16686"   # Jaeger UI
+489: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+494:     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+521:     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+522:     user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+529:     watchlist_id UUID NOT NULL REFERENCES watchlists(id) ON DELETE CASCADE,
+608:     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+609:     user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+720:     id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+721:     user_id     UUID REFERENCES users(id),
+798: (`INCR` with daily TTL), real-time price cache for dashboard, pub/sub channel for live WebSocket
+799: updates to the web dashboard.
+834:     settings.VALKEY_URL,
+875: | `NOAUTH Authentication required` | Connecting without password in code | Pass `password=` in the connection URL or client constructor |
+903: from chromadb.config import Settings
+906:     host=settings.CHROMA_HOST,
+907:     port=settings.CHROMA_PORT,
+908:     settings=Settings(
+910:         chroma_client_auth_credentials=settings.CHROMA_TOKEN,
+970: news sentiment scores — a cross-domain join that is natural in SurrealDB's graph+document model
+1028: **Role:** Object storage for generated chart images (candlestick charts sent as Discord
+1033: - `charts` — Discord/web candlestick chart images (PNG)
+1046: MINIO_BUCKET_CHARTS=charts
+1059:     settings.MINIO_ENDPOINT,
+1060:     access_key=settings.MINIO_ACCESS_KEY,
+1061:     secret_key=settings.MINIO_SECRET_KEY,
+1065: BUCKETS = ["charts", "reports", "models", "ohlcv-archive"]
+1072: # Upload a chart image
+1073: def upload_chart(symbol: str, chart_bytes: bytes) -> str:
+1077:         "charts", key,
+1078:         io.BytesIO(chart_bytes), len(chart_bytes),
+1081:     return client.presigned_get_object("charts", key, expires=timedelta(hours=1))
+1087: # Console UI: http://localhost:9001 (login: MINIO_ROOT_USER / MINIO_ROOT_PASSWORD)
+1174: range, or sentiment band. Powers the web dashboard search bar ("find all articles mentioning
+1205:         "settings": {
+1224:         "settings": {
+1235:                 f"{settings.ELASTIC_URL}/{index_name}",
+1237:                 auth=(settings.ELASTIC_USER, settings.ELASTIC_PASSWORD)
+1260: | `circuit_breaking_exception` | JVM heap exhausted | Increase `ES_JAVA_OPTS=-Xms1g -Xmx1g` if RAM budget allows; or reduce document size |
+1293:         url=settings.INFLUX_URL,
+1294:         token=settings.INFLUX_TOKEN,
+1295:         org=settings.INFLUX_ORG
+1304:         await write_api.write(bucket=settings.INFLUX_BUCKET_MENTIONS, record=point)
+1412: **Role:** Geographic data for macro-geographic analysis — stock exchange locations, company
+1413: headquarters for geographic clustering, and sector geographic concentration analysis.
+1421:     conn.load_extension("mod_spatialite")  # requires: apt-get install spatialite-bin
+1487: **Role:** Live dashboard aggregations. Runs as an in-memory database inside the FastAPI process.
+1489: without touching the primary databases. Supports the dashboard's "current summary" panel.
+1533: **Role:** Correlation graph between tickers. Edges represent a historical correlation coefficient
+1535: Graph is persisted to SQLite for restart persistence and re-loaded into memory as a NetworkX
+1542: def save_graph(G: nx.Graph, path: str = "data/correlation_graph.db"):
+1557: def load_graph(path: str = "data/correlation_graph.db") -> nx.Graph:
+1558:     G = nx.Graph()
+1627: ### Keep-Alive Requirement
+1631: for more than 23 hours (e.g., during Proxmox maintenance), resume by hitting the Astra UI or
+1641: cloud_config = {'secure_connect_bundle': settings.ASTRA_SECURE_BUNDLE_PATH}
+1643:     settings.ASTRA_DB_CLIENT_ID,
+1644:     settings.ASTRA_DB_CLIENT_SECRET
+1647: session = cluster.connect(settings.ASTRA_KEYSPACE)
+1656: **Role:** Ticker relationship graph. Nodes are tickers, companies, sectors, and indices. Edges
+1658: `CORRELATED_WITH`. Powers the "correlation graph explorer" in the web dashboard and the
+1681:     FOR (t:Ticker) REQUIRE t.symbol IS UNIQUE;
+1683:     FOR (s:Sector) REQUIRE s.name IS UNIQUE;
+1700: ### Keep-Alive Requirement
+1702: Neo4j AuraDB Free instances are paused after 3 days of inactivity. MarketPulse's daily graph
+1708: from neo4j import AsyncGraphDatabase
+1710: driver = AsyncGraphDatabase.driver(
+1711:     settings.NEO4J_URI,
+1712:     auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD)
+1857: | 6379 | Valkey | TCP | Requires password auth |
+1863: | 9001 | MinIO Console | HTTP | Web UI |
+1866: | 16686 | Jaeger UI | HTTP | Trace viewer |
+1867: | 3000 | Grafana | HTTP | Dashboard UI |
+1871: | 27017 | MongoDB | TCP | Auth required |
+1968: DISCORD_GUILD_ID=
+1979: # App settings
+
+--- docs\README_2_APPLICATION_OUTLINE.md ---
+4: > references. **This is the contract.** What is written here is what gets built. If the
+83: The web dashboard's primary use case is: open it, see the prediction. This must require **zero
+84: clicks** from the authenticated dashboard home page. The dashboard home page shows:
+89: 3. Clicking any ticker card expands to the full analysis view.
+91: Progressive disclosure: the full analysis view shows the candlestick chart first (most
+94: weights) is behind a gear icon that opens a slide-out panel — not on the main view.
+115: - `yfinance` for initial historical backfill (unlimited, daily granularity, no key required)
+121: - **Valkey** — `price:cache:{symbol}` key for latest price (60-second TTL for dashboard reads)
+123: - **DuckDB in-memory** — live aggregations on recent OHLCV for dashboard summary panel
+129: **Implementation requirements:**
+161:   Benzinga, Yahoo Finance RSS, CoinDesk, CoinTelegraph, Decrypt
+162: - User-custom RSS feeds (user-added via dashboard, tagged with tickers)
+194: **Implementation requirements:**
+200:   mentioning "Apple" without "AAPL", use a company name → ticker lookup table built at startup.
+220: most bullish and most bearish posts per ticker in the dashboard sentiment panel.
+227: ticker configuration panel in the dashboard.
+239: **Implementation requirements:**
+247:   over "month" and "year" to build a sentiment history baseline.
+280: **Implementation requirements:**
+301: Expose computed indicators to the ML feature pipeline and to the web dashboard chart view.
+317: - **DuckDB in-memory** — live computation for dashboard "current indicators" panel
+321: **Implementation requirements:**
+334: - ATR: https://school.stockcharts.com/doku.php?id=technical_indicators:average_true_range_atr
+335: - VWAP: https://school.stockcharts.com/doku.php?id=technical_indicators:vwap_intraday
+401: - **Valkey** — `predict:latest:{symbol}:{horizon}` (4-hour TTL for fast dashboard reads)
+411: **Implementation requirements:**
+422: - gRPC Python: https://grpc.io/docs/languages/python/quickstart/
+423: - protobuf: https://protobuf.dev/programming-guides/proto3/
+464: as runtime circuit breakers.
+478: (persistent reference). Display current usage in the admin settings panel. Send quota warning
+505: **Implementation requirements:**
+511: - The Dashboard quota panel shows: source name, current count, limit, percentage used as a
+521: structured embeds. Chart commands generate chart images and attach them. Multi-item responses use
+530: | `/watchlist` | `name` | Paginated embed (10 tickers/page) | All tickers in a watchlist with current predictions |
+531: | `/sentiment` | `ticker` | Embed + chart image attachment | Reddit and news sentiment breakdown with score chart |
+535: | `/chart` | `ticker`, `period` (1w/1m/3m/1y) | Chart image attachment | Candlestick chart with prediction overlay |
+544: | `/export` | `ticker`, `format` | Link embed | Link to web dashboard export endpoint |
+546: **Chart generation (`/chart` and `/sentiment`):**
+583: - **MinIO** — chart images stored and served via presigned URL (or sent directly as bytes)
+595: ### Module 10: Web Dashboard
+599: Provide a React + Vite SPA that is the primary exploration and configuration surface. No page
+600: reloads after initial load. Real-time price and prediction updates via WebSocket. All charts
+601: rendered with Recharts.
+603: **Pages and their primary components:**
+605: **Home (/):** Default watchlist, ticker prediction cards sorted by confidence, quick search bar.
+608: - Candlestick chart with SMA/EMA overlays (Recharts ComposedChart)
+616: - Reddit sentiment line chart per subreddit over time (Recharts LineChart)
+617: - News sentiment line chart per source over time
+618: - Sentiment vs. price correlation chart
+621: **Earnings (/earnings):** Calendar view of upcoming earnings for tracked tickers.
+623: **Macro (/macro):** Federal funds rate chart (FRED data), 10Y yield, CPI YoY, VIX, yield curve.
+625: **Settings (/settings):** Alert configuration table, notification channel toggles, API quota
+629: reset, system health dashboard.
+644: - Recharts: https://recharts.org/en-US/api
+645: - RTK Query: https://redux-toolkit.js.org/rtk-query/overview
+646: - Vite: https://vitejs.dev/guide/
+654: React Native CLI bare workflow app providing portfolio-at-a-glance view with push notifications.
+656: via OneSignal SDK. No configuration — read-only view of the same data as the web dashboard.
+660: - **Ticker Detail:** Same analysis view as web, adapted for mobile (swipeable tabs)
+662: - **Settings:** Notification preferences, OneSignal subscription management
+680: **Paradigm demonstrated:** React Native bare workflow (no Expo), OneSignal mobile push
+684: - React Native CLI: https://reactnative.dev/docs/environment-setup
+685: - OneSignal React Native SDK: https://documentation.onesignal.com/docs/react-native-sdk
+711: endpoint exposed via same Cloudflare Tunnel. No Google Cloud required — local fulfillment only.
+718: - Alexa Skills Kit SDK for Python: https://developer.amazon.com/en-US/docs/alexa/alexa-skills-kit-sdk-for-python/overview.html
+734: ticker detail page in the web dashboard.
+743:     <link>https://your-domain/dashboard</link>
+750:       <guid>prediction:AAPL:7d:2024-08-01T14:32:00Z</guid>
+769: Allow users to export any data view from the web dashboard in five formats: CSV, PDF report,
+770: raw JSON, raw HTML, and XML. Export is available from every data-bearing view via an export
+771: button.
+785: name and current prediction, summary table, and a static version of the candlestick chart
+792: - reportlab: https://www.reportlab.com/docs/reportlab-userguide.pdf
+803: required to complete account creation — both are optional. When both are enrolled, the user
+811:   → if 2FA enrolled: return {requires_2fa: true, methods: ["totp", "sms"]}
+823:     "jti": str(uuid4()),          # unique token ID (for blocklist)
+916: calendar in the web dashboard and Discord `/earnings` command. Send earnings-approaching alerts
+936: (buy/sell), shares, price, and filing date. Store in MongoDB. Surface in the dashboard ticker
+937: detail view and Discord `/insider` command. Generate an insider trading alert when a new filing
+951: ### Module 20: Macro Indicators Dashboard
+956: values and historical charts. Include these as features in the ML prediction pipeline for all
+980: ### Module 21: Sentiment Dashboard
+984: Display a comprehensive sentiment analysis view for each ticker: Reddit sentiment per subreddit
+985: over time (chart), news sentiment per source over time (chart), overall combined sentiment score
+988: correlation chart (did sentiment precede price movement?).
+991: by 1, 2, 3, and 7 days) and next-day return. Show the optimal lag in the dashboard. High
+995: - **TimescaleDB** — `sentiment_scores` hypertable (primary source for all sentiment charts)
+997: - **InfluxDB** — high-frequency sentiment stream (real-time chart updates during market hours)
+1008: horizon. Display accuracy in the dashboard and Discord `/accuracy` command. Send a model accuracy
+1025: ### Module 23: Correlation Graph Explorer
+1029: Display the ticker correlation graph in the web dashboard with interactive node-link visualization.
+1031: clusters represent sector behavior. The Discord `/compare` command queries the same graph to
+1034: **Graph computation:**
+1038: - Graph recomputed weekly by an ARQ cron job.
+1039: - NetworkX persists the graph to SQLite (Database 15) for restart persistence.
+1040: - Neo4j stores the graph as `CORRELATED_WITH` relationships for complex graph queries.
+1042: **Web dashboard visualization:** Recharts cannot render network graphs — use `react-force-graph`
+1046: - **NetworkX → SQLite** — in-process graph with SQLite persistence
+1047: - **Neo4j AuraDB** — `CORRELATED_WITH` relationships for graph queries
+1056: Provide an admin-only section of the web dashboard with 25 dedicated panels, one per paradigm
+1069: Display all feature flags in the admin settings panel. Allow toggling any flag on or off at
+1098: ## Module Dependency Graph
+1103: Database adapters (Module 4 in build guide)
+1109:                   → Web Dashboard (Module 10)
+1113:       → Sentiment Dashboard (Module 21)
+1115:       → Sentiment Dashboard (Module 21)
+1122:   → All user-facing modules (must be built before any module that has user-specific config)
+
+--- docs\README_3_ALL_PARADIGMS_MASTER.md ---
+31: | 2.1 | **Environment-based configuration** | Config values come from environment variables, not hardcoded | All secrets, connection strings, and tunable parameters come from `.env` files or environment variables, read by `pydantic-settings`. The `Settings` class validates and types every variable at startup. |
+32: | 2.2 | **Configuration schema validation** | Config is validated against a schema at startup, not at use time | The `Settings` class uses Pydantic validators. If `POSTGRES_PASSWORD` is empty or `JWT_SECRET_KEY` is fewer than 32 characters, the application exits at startup with a descriptive error rather than failing later. |
+35: | 2.5 | **Hierarchical configuration** | Configuration has a precedence hierarchy (env > file > defaults) | `pydantic-settings` reads in order: environment variables first, then `.env.local`, then `.env`, then compiled-in defaults. This allows production to override dev values without touching files. |
+46: | 3.2 | **Protocol Buffers** | Binary serialization for gRPC | The ML sidecar uses `.proto` definitions for `PredictionRequest` and `PredictionResponse`. The binary encoding is 3–10× smaller than JSON equivalents and ~100× faster to serialize/deserialize. |
+50: | 3.6 | **MessagePack** | Compact binary replacement for JSON | Valkey pub/sub messages (price updates, prediction changes) are serialized with MessagePack for compact binary transmission to WebSocket clients. The web dashboard deserializes them with the `msgpack` JS library. |
+60: | 4.1 | **Role-Based Access Control (RBAC)** | Permissions tied to roles (user, admin), not individuals | JWT payload includes a `roles` claim. OPA policies check `input.user.roles` — admin-only endpoints (quota reset, flag toggle, paradigm console) require the `admin` role. Regular users have `user` role. |
+64: | 4.5 | **Scope-based API authorization** | Specific API endpoints require specific scopes | The OPA policy for admin operations requires `"admin" in input.user.roles`. The policy for the Discord bot's internal API (called by the bot process) requires `"bot_client"` in the roles claim. |
+75: | 5.2 | **Dashboards (Grafana)** | Visual display of metrics over time | Grafana dashboards pre-provisioned: (1) API request latency by endpoint, (2) ARQ worker queue depth over time, (3) ML prediction latency histogram, (4) database connection pool usage, (5) API quota gauges per source. |
+80: | 5.7 | **SLO tracking** | Service Level Objective measurement | The admin console displays computed SLOs: "Prediction latency < 2s: 99.2% of the last 1000 requests" and "OHLCV ingestion success rate: 98.7% over the last 7 days." SLO data is stored in PostgreSQL and queried by the dashboard. |
+88: | 6.1 | **Redux Toolkit** | Centralized, predictable state management for React | Web dashboard uses Redux Toolkit with RTK Query for all server state. Each ticker's prediction, price, and sentiment are stored in typed Redux slices. DevTools show every state change. |
+89: | 6.2 | **Optimistic updates** | UI updates immediately before server confirms success | When a user adds a ticker to a watchlist in the dashboard, the ticker card appears immediately in the UI (optimistic), then the POST request is sent. If the server returns an error, the card is removed (rollback). |
+90: | 6.3 | **Server-sent events / WebSocket** | Pushing state changes from server to client in real-time | FastAPI WebSocket endpoint pushes price and prediction updates to the web dashboard. Mobile app receives push notifications (a different state update channel — see 6.4). |
+93: | 6.6 | **Materialized view / cache** | Pre-computed results stored for fast reads | The dashboard "current summary" view reads from DuckDB in-memory materialized aggregations, not from raw TimescaleDB queries. The materialized view is refreshed on every prediction update, keeping reads instant. |
+95: | 6.8 | **React Native state** | Mobile app state management with React hooks | Mobile app uses `useState` and `useReducer` for local component state, and `@tanstack/react-query` for server cache state (prediction cards, news feed). No Redux in the mobile app — lighter, more appropriate for the read-only use case. |
+103: | 7.1 | **TypeScript compilation** | Static type-checking and transpilation to JavaScript | Web dashboard is written in TypeScript, compiled by Vite's esbuild pipeline. `tsc --noEmit` runs in CI to catch type errors before the build step. |
+104: | 7.2 | **Python bytecode compilation** | Python source compiled to .pyc bytecode by CPython | Standard Python behavior. The FastAPI backend is packaged as a Docker image with `python -O` optimization flag (removes assert statements, optimizes bytecode) in production builds. |
+107: | 7.5 | **esbuild (via Vite)** | Ultra-fast JavaScript/TypeScript bundler | Vite uses esbuild for development mode (instant hot reload) and Rollup for production builds. The production build produces a single optimized JS bundle + CSS, serving the entire web dashboard from three files. |
+109: | 7.7 | **React Native Metro bundler** | JavaScript bundler for React Native | Metro bundles the React Native mobile app's JavaScript into a single bundle loaded by the native runtime. In development, Metro serves the bundle live with fast refresh. In production, the bundle is embedded in the app binary. |
+118: | 8.2 | **TypeScript interfaces** | Static type contracts in the frontend codebase | Every API response type is defined as a TypeScript interface in `src/types/`. RTK Query endpoints are generic over these interfaces. The compiler catches mismatches between API response shapes and UI component props. |
+120: | 8.4 | **Generic types** | Type-parameterized containers and functions | The FastAPI `PaginatedResponse[T]` response model is a generic: `class PaginatedResponse(BaseModel, Generic[T]): items: list[T]; total: int; page: int`. The same wrapper works for `PaginatedResponse[PredictionSchema]` and `PaginatedResponse[NewsArticleSchema]`. |
+134: | 9.3 | **In-process caching with LRU eviction** | Bounded in-memory cache that evicts least-recently-used items | `functools.lru_cache` caches the company-name-to-ticker lookup table (built from the ticker registry at startup) with `maxsize=10000`. The Valkey client's connection pool inherits Python's `allkeys-lru` eviction. |
+150: | 10.4 | **Rule-based NLP (VADER)** | Sentiment analysis using a dictionary of sentiment words and rules | VADER applies a lexicon of ~7500 words with pre-assigned sentiment scores plus rules for capitalization, punctuation (!!!), and negation. Runs at ~10,000 texts/second — suitable for real-time Reddit scoring as posts arrive. |
+156: | 10.10 | **SHAP explainability** | Computing the marginal contribution of each feature to a prediction | After each ensemble prediction, SHAP (SHapley Additive Explanations) computes the contribution of each feature to the final direction. The `prediction_explanations` MongoDB document stores the top 10 most influential features and their SHAP values. The dashboard "why" panel displays these. |
+165: | 11.2 | **Time-series (TimescaleDB)** | Database optimized for time-ordered data with automatic partitioning | OHLCV, predictions, sentiment scores, and technical indicators stored in TimescaleDB hypertables. `time_bucket` aggregations power the dashboard charts. |
+169: | 11.6 | **Object storage (MinIO)** | S3-compatible blob storage for arbitrary binary objects | Chart images, exported reports, ML model binaries, OHLCV Parquet archives. |
+180: | 12.2 | **Graph modeling (Neo4j)** | Representing entities and their relationships as nodes and edges | Ticker nodes connected by `MEMBER_OF` (sector/index), `SUPPLIER_OF`, `CUSTOMER_OF`, `CORRELATED_WITH`, `INSIDER_BOUGHT`/`SOLD`, and `ETF_HOLDS` relationships. |
+181: | 12.3 | **Multi-model (SurrealDB)** | Single database expressing relational, document, and graph structures simultaneously | SurrealDB stores ticker records (table), news articles (document), and sector membership (graph edges) in one query engine, enabling cross-model JOINs that would require three separate databases otherwise. |
+185: | 12.7 | **Domain model** | Rich Python objects representing business concepts | The domain model (Phase 3 of the build guide) defines `Ticker`, `Prediction`, `Alert`, `WatchList`, `SentimentScore`, `NewsArticle`, `RedditPost`, `APIQuota`, `NotificationPreference` as Python dataclasses with behavior methods (e.g., `Prediction.is_actionable()`, `Alert.should_fire()`). |
+210: | 14.3 | **WebSocket** | Full-duplex persistent connection for real-time updates | The web dashboard connects to `ws://api/ws/price-updates` for real-time prediction and price push. |
+216: | 14.9 | **Bolt protocol (Neo4j)** | Neo4j's binary graph query protocol | The Neo4j Python driver communicates with AuraDB over the Bolt protocol (binary, encrypted with TLS). This is the native protocol for the Neo4j driver — not HTTP. |
+229: | 15.6 | **Mutation testing** | Verifying that tests fail when code is subtly broken | `mutmut` mutates the business logic in `prediction.py` (e.g., changing `>=` to `>`, swapping `UP` and `DOWN`) and verifies that at least one test fails for each mutation. If a mutation survives, the test suite is incomplete. |
+244: | 16.4 | **CI/CD (GitHub Actions)** | Automated test → build → deploy pipeline on every push | Pushing to any branch runs unit tests. Merging to `main` runs the full test suite, builds Docker images, pushes to the container registry, and triggers Argo CD sync. |
+253: ## Category 17 — UI / Frontend (9 sub-paradigms)
+257: | 17.1 | **React SPA** | Single-page application with client-side routing | The web dashboard is a React SPA using `react-router-dom` v6. Navigation between ticker detail, watchlists, settings, and the admin console never reloads the page. |
+258: | 17.2 | **React Native** | Cross-platform mobile app with native rendering | The mobile app renders real native iOS and Android components (not WebView). The bare workflow gives direct access to native modules for OneSignal push. |
+259: | 17.3 | **Recharts** | Declarative SVG chart library for React | Candlestick charts: `ComposedChart` with `Bar` (OHLC encoded as bar geometry), `Line` (SMA/EMA overlays), and `ReferenceLine` (support/resistance). Sentiment charts: `LineChart`. Accuracy charts: `RadarChart`. |
+260: | 17.4 | **Progressive disclosure** | Showing information in layers, from summary to detail | Dashboard home: prediction direction only. Clicking a card: candlestick + prediction row. Expanding tabs: full indicator list. Clicking gear icon: full configuration panel. No information is hidden — it is progressively revealed. |
+261: | 17.5 | **Responsive design** | UI adapts to different screen sizes | The web dashboard uses CSS Grid with responsive breakpoints. At mobile viewport width, the watchlist switches from a 3-column card grid to a single-column vertical list. |
+262: | 17.6 | **Discord embeds** | Rich formatted message blocks in Discord | The Discord bot builds `discord.Embed` objects with color-coded titles (green for UP, red for DOWN), inline fields for each prediction horizon, thumbnail for the ticker logo, and a footer with the prediction timestamp. |
+263: | 17.7 | **mplfinance chart generation** | Server-side financial chart image generation | The `/chart` Discord command generates a PNG candlestick chart on the server and attaches it to the Discord message. Pillow adds text overlays (confidence badge, prediction direction label). |
+264: | 17.8 | **WebSocket live updates** | Real-time DOM updates without polling | Ticker card prices and confidence scores on the web dashboard update in real-time as Valkey pub/sub pushes changes through the WebSocket connection. The Redux store is updated, causing React to re-render only the changed ticker cards. |
+265: | 17.9 | **Voice UI** | Natural language interaction through smart speakers | The Alexa skill and Google Home action provide a voice UI with intent recognition. The `GetPrediction` intent handler formats a spoken response optimized for audio (not text) — short, unambiguous, using stock ticker spoken names ("Apple" not "AAPL"). |
+306: | 20.5 | **Multi-model (SurrealDB)** | Graph + document + relational in one engine | Cross-domain sector sentiment queries |
+307: | 20.6 | **Object storage (MinIO)** | S3-compatible blob storage | Charts, reports, models, Parquet archives |
+313: | 20.12 | **Embedded geospatial (SpatiaLite)** | Geographic features and queries | Company HQ locations, exchange locations |
+315: | 20.14 | **Embedded OLAP in-memory (DuckDB)** | Analytical queries on in-process data | Live dashboard aggregations |
+318: | 20.17 | **Graph (Neo4j AuraDB)** | Node-edge graph with Cypher query language | Ticker relationships, supply chains, ETF holdings |
+329: | 21.4 | **Declarative programming** | Describing what you want, not how to compute it | SQL queries, OPA Rego policies, Pydantic models, and React JSX are all declarative — they describe the desired outcome, and the runtime figures out how to achieve it. |
+330: | 21.5 | **Reactive programming** | Propagating changes through a data dependency graph | Valkey pub/sub → WebSocket → React Redux store → React component re-render is a reactive chain: a price change flows automatically through all layers without any imperative orchestration code. |
+334: | 21.9 | **Policy-oriented programming (OPA)** | Separating policy decisions from policy enforcement code | OPA Rego policies express authorization rules. The FastAPI middleware calls OPA's REST API to evaluate policies, without knowing what the rules are. Adding a new policy rule requires only a `.rego` file change, not a code change. |
+342: | 22.1 | **Microservices** | Application decomposed into independent, separately deployable services | FastAPI backend, ML sidecar, Discord bot, ARQ workers, and the web/mobile frontends are separate processes that communicate over defined interfaces (REST, gRPC, Valkey pub/sub). |
+347: | 22.6 | **CQRS (Command Query Responsibility Segregation)** | Separate write paths (commands) and read paths (queries) | The ingestion pipeline is the write path (command): it pushes data into all databases through the API. The dashboard reads (queries) use DuckDB materialized views and Valkey caches, not the primary write databases. Commands and queries hit completely different code paths. |
+348: | 22.7 | **Circuit breaker** | Stopping calls to a failing service to prevent cascade failures | The gRPC client wrapping the ML sidecar implements a circuit breaker: after 3 consecutive connection failures, it opens the circuit for 60 seconds (returning cached predictions instead of failing live). |
+360: | 23.4 | **WebSocket** | Persistent full-duplex TCP channel | Web dashboard live price/prediction updates. |
+363: | 23.7 | **Discord API** | Platform-specific API for building bot interactions | Discord slash commands, embed builders, paginated message components, and file attachments via `discord.py`. |
+364: | 23.8 | **Alexa Skills API + Google Actions API** | Voice platform APIs for building voice interactions | Local Alexa skill receives Alexa requests, returns SSML speech responses. Local Google Home action receives Google Assistant requests via Flask webhook. |
+373: | 24.2 | **Code review** | Human review of every change before merge | GitHub PR template requires: description of change, testing evidence, paradigm coverage update (if applicable), README update (if behavior changes). Minimum 1 approval required to merge. |
+374: | 24.3 | **CI/CD pipeline** | Automated testing, building, and deployment | GitHub Actions: `test.yml` (pytest, tsc), `build.yml` (Docker image build + push), `deploy.yml` (trigger Argo CD sync). |
+377: | 24.6 | **Test coverage** | Measuring how much code is exercised by tests | `pytest-cov` measures line and branch coverage. CI fails if overall coverage drops below 80%. Critical modules (feature engineering, prediction pipeline) require 90%+ coverage. |
+379: | 24.8 | **Documentation as code** | Documentation living in the repository, updated with every change | The nine README files in `docs/` are part of the repository. CI includes a check that verifies: if a new module is added to `README_2`, a corresponding build step exists in `README_5`. |
+381: | 24.10 | **Reproducible builds** | Given the same inputs, the build produces the same output** | `requirements.txt` pins all Python package versions. `package-lock.json` pins all npm packages. Docker images are built from pinned base image digests (e.g., `timescale/timescaledb@sha256:...`), not floating tags. |
+395: | 25.4 | **Prediction calibration and confidence communication** | Communicating model uncertainty to end users accurately | Confidence scores are calibrated (isotonic regression) so that 80% confidence corresponds to ~80% observed accuracy. The UI communicates uncertainty through color, badge weight, and explicit "uncertain" labeling for low-confidence predictions — never presenting uncertain predictions as actionable. |
+399: ## Paradigm Coverage Quick-Check Table
+419: | UI/Frontend | 9 | ✓ |
+
+--- docs\README_4_EXPANDED_OUTLINE.md ---
+2: > This document covers three subjects: (1) the module-by-module description of how to build each
+12: The admin paradigm demo console is an admin-only section of the web dashboard at `/admin/paradigms`.
+15: a documentation page; it is an interactive exhibit.
+18: access the `/admin` section. The entire admin console is a single React component tree that only
+24: 2. **Live demonstration**: An interactive UI element showing the paradigm in action with real data.
+40: - A "Run pending migrations" button (admin-only, shows a diff of what would change, requires
+48: 3. Build `VersionPanel.tsx` with `useGetVersionQuery()` RTK Query hook and the migrations table.
+61: - A settings table showing all `pydantic-settings` configuration keys (names only, not values for
+67: - A "Configuration validation report" showing whether all required env vars are set, which are
+71: 1. Create `GET /api/v1/admin/config/summary` returning a redacted settings summary.
+75: 4. Build `ConfigPanel.tsx` with the settings summary, flag toggles (React Switch components),
+94: - An "Export as..." button set: clicking any format runs the serialization benchmark live and
+96: - An RSS feed preview showing the raw XML output of `GET /rss/predictions`.
+102: 3. Build `SerializationPanel.tsx` with the benchmark table, a "Run Benchmark" button, and the
+103:    RSS preview using a `<pre>` block fetched from `GET /rss/predictions`.
+114: - A policy viewer showing the content of each `.rego` file in `policies/`, syntax-highlighted.
+128: 4. Build `AuthPanel.tsx` with the Rego viewer (use `react-syntax-highlighter`), query tester,
+138: requires guessing.
+141: - Embedded Grafana dashboard iframe showing the last 1 hour of API request latency.
+145: - A Loki log viewer: show the last 10 structured log lines, formatted as JSON with timestamp
+153: 4. Build `ObservabilityPanel.tsx` with a `<iframe>` for Grafana and custom React components
+161: the client, within a UI, and between services. The key challenge is keeping state consistent
+173: - A state rehydration demo: shows the SQLite event journal's last 5 entries and a button to
+181: 4. Build `StatePanel.tsx` with the action log viewer, pub/sub counter, and event journal table.
+195: - A protobuf schema viewer: show the `prediction.proto` file content and a "decode bytes" tool
+197: - A "run code generation" button: clicking it runs `python -m grpc_tools.protoc prediction.proto`
+199: - The Vite build stats: bundle sizes, chunk count, and build time from the last production build.
+206: 4. Build `CompilationPanel.tsx` with the model comparison table, protobuf tools, and Vite stats.
+220: - A TypeScript interface viewer: shows all interfaces in `src/types/`, browsable by name.
+232: 3. Build `TypeSystemPanel.tsx` with the schema explorer (searchable table), type validation
+251: - A "Force GC" button: calls `gc.collect()` on the FastAPI process and shows the before/after
+260: 3. Build `MemoryPanel.tsx` with live gauges (update via polling every 5s) and the streaming demo.
+282: - SHAP waterfall chart: shows which features pushed the prediction toward UP vs. DOWN.
+290: 3. Build `MLPanel.tsx` with the step-by-step pipeline display (each step is a collapsible card
+291:    that reveals when the step completes), a SHAP waterfall chart using Recharts, and accuracy cards.
+320: 4. Build `StoragePanel.tsx` with a custom force-directed graph layout using D3 for the topology,
+328: have, and how they relate to each other. The model choice — relational, document, graph,
+338: - A Neo4j graph snippet: show a Cypher query and its result as an interactive node-link diagram
+339:   (use `neo4j-nvl` or `@neo4j-nvl/react` for in-browser graph rendering).
+340: - A SurrealDB cross-model query demo: a pre-built query that joins tickers, sectors, and news
+341:   articles, showing results that would require three separate queries in a traditional system.
+350: 4. Build `ModelingPanel.tsx` with Mermaid rendering, the ZODB tree, and Neo4j graph display.
+359: size, API rate limits) is essential for building a system that scales.
+368:   token count, the refill rate, and a "send burst of 10 requests" button that demonstrates
+370: - An ARQ worker queue depth graph: live chart of the ARQ task queue depth over the last hour.
+378: 4. Build `ConcurrencyPanel.tsx` with gauges, the side-by-side timing comparison, and the
+395:   latency, and throughput vs. a hypothetical REST equivalent.
+407: 4. Build `NetworkPanel.tsx` with a custom SVG topology diagram, benchmark results, and the
+414: **Concept:** A test suite is a specification of expected behavior. Without tests, every change
+435: 4. Build `TestingPanel.tsx` with the live test output stream (SSE consumer), coverage heat map,
+448: - An Argo CD application status view: the current sync status of each Argo CD application
+454:   Blue: 0% → Green: 100% after healthy deploy). A "Simulate Deploy" button walks through the
+465: 4. Build `DeploymentPanel.tsx` with the Argo CD status cards, deployment history table, and
+470: ### Panel 17 — UI / Frontend
+473: UI makes complex data accessible through progressive disclosure — showing the most important
+474: information first, with detail available on demand. A poorly designed UI buries insights in
+475: menus and tabs.
+478: - A component gallery: shows every reusable UI component from `src/components/` — PredictionCard,
+481: - A chart type gallery: shows the same AAPL data rendered as five chart types — candlestick,
+482:   line, area, volume bar, and a combined chart — to demonstrate Recharts versatility.
+485: - A Discord embed preview: shows what the `/predict AAPL` Discord response would look like,
+491: 2. Create a `ChartGallery.tsx` that fetches AAPL OHLCV data and renders it in 5 chart formats.
+492: 3. Create a `DiscordEmbedPreview.tsx` that mimics Discord's embed rendering using CSS.
+493: 4. Build `UIPanel.tsx` with tabs for the component gallery, chart gallery, live update demo,
+494:    and Discord preview.
+513:   and a "Verify Chain Integrity" button that recomputes all hashes and reports whether the chain
+524: 4. Build `SecurityPanel.tsx` with bcrypt benchmark chart, JWT lifecycle demo, 2FA walkthrough,
+540: - A "trigger manual ingest" button for any pipeline: clicking it enqueues the ARQ task and shows
+549: 2. Create `POST /api/v1/admin/pipelines/trigger/{pipeline_name}` enqueuing the named ARQ task.
+552: 4. Build `DataProcessingPanel.tsx` with the pipeline health table, trigger buttons, dedup stats,
+553:    and the Lambda architecture diagram (custom SVG or a Mermaid flowchart).
+580: 2. Build `DatabasePanel.tsx` with the 17 cards in a responsive grid and a modal query panel
+590: or an event-driven approach (react to stimuli). Most real systems combine paradigms.
+598: - A reactive chain visualization: trace a price update from Valkey pub/sub message → WebSocket
+599:   message → Redux action → React re-render, showing each step in the chain.
+605: 3. Build `ProgrammingPanel.tsx` with a paradigm selector, code display, execution output,
+606:    and the reactive chain animation (use Framer Motion for the flow visualization).
+614: is to isolate changes: adding a new data source should not require changing the prediction
+615: pipeline; changing the alert delivery system should not require touching the ingestion workers.
+618: - A component dependency graph: shows the dependency graph of all major MarketPulse components
+619:   as a directed acyclic graph. Nodes are components; edges are "calls/depends on" relationships.
+623: - A circuit breaker status card: shows the ML sidecar circuit breaker's current state (closed /
+626:   pub/sub → WebSocket → Redux) side by side with a read path (dashboard load → DuckDB query →
+627:   RTK Query cache → React component).
+630: 1. Create `GET /api/v1/admin/architecture/component-graph` returning the dependency graph as
+634: 3. Create `GET /api/v1/admin/architecture/circuit-breaker/status` returning the circuit breaker
+636: 4. Build `ArchitecturePanel.tsx` with a D3 force-directed graph for the dependency diagram,
+637:    the plugin registry table, and the circuit breaker status card.
+643: **Concept:** Different communication protocols are suited to different use cases. REST is
+650: - An API explorer: a simplified Swagger UI for the MarketPulse REST API, generated from
+656: - An RSS feed live view: shows the current output of `GET /rss/predictions` with auto-refresh
+660: 1. FastAPI auto-generates OpenAPI spec — embed a Swagger UI iframe pointing to `/docs`.
+664: 4. Build `APIPanel.tsx` with the Swagger iframe, benchmark results, WebSocket tester, and
+665:    RSS live view.
+673: testing, code review, and documentation are not bureaucracy — they are the engineering equivalent
+677: - A CI/CD pipeline status view: the last 10 GitHub Actions pipeline runs with status, commit
+679: - A code quality dashboard: current linting errors (from `ruff check .`), type errors (from
+684:   (feat/fix/docs/test/refactor/chore) as a bar chart.
+692: 4. Build `DevProcessPanel.tsx` with the CI status table, quality metric cards, doc coverage
+693:    table, and commit history chart.
+711:   accuracy chart updating as each period's evaluation completes.
+729: 5. Build `FinancialPanel.tsx` with the normalization chart (Recharts LineChart with 3 series),
+730:    walk-forward backtest progress view, look-ahead checker, and calibration chart.
+911: **No other file changes required.** The plugin is auto-discovered at startup, automatically
+1011: 3. **FastAPI middleware:** For experimental UI features, the `FeatureFlagMiddleware` checks
+1031: 1. **The prediction is always visible first.** Every view that shows a ticker shows its
+1032:    direction and confidence before anything else. No scrolling required to see the prediction.
+1035:    home page in zero clicks. You can always get to the configuration in exactly one click (the
+1037:    inside the configuration panel. No configuration is more than two clicks from the home page.
+1047: | See all predictions | 0 | Home page shows them |
+1048: | See a specific ticker's chart | 1 | Click ticker card |
+1050: | Add a ticker to tracking | 1 | Click "+" button on home → type ticker |
+1053: | Export ticker data | 2 | Click ticker card → Export button |
+1054: | Change a feature flag | 3 | Admin → Settings → Feature Flags |
+1058: The web dashboard implements progressive disclosure through a layered component model:
+1061: HomeDashboard
+1066: │           ├── CandlestickChart (always visible first in the drawer)
+1078: └── QuickAddSearch (bottom of home, always visible)
+1081: The `TickerDetailDrawer` is a slide-over panel that overlays the home page without navigation.
+1082: This means the user can check a prediction, look at the chart, and return to the home page
+1083: watchlist grid without a page transition.
+
+--- docs\README_5_BUILD_GUIDE.md ---
+0: # MarketPulse — Build Guide
+8: ## How to Use This Guide
+75:       `build/`, `.coverage`, `htmlcov/`
+95:       ├── web_dashboard/        ← React + Vite frontend
+98:       │   │   ├── pages/
+103:       ├── mobile_app/           ← React Native
+110:       ├── tests/                ← pytest test suite
+144: **Prerequisite:** Phase 0 VALIDATE passed.
+188: # Expected: all 17 databases PASS (or N/A for cloud databases if network is unavailable)
+221:             - run: pip install -r requirements.txt
+227: - [x] 2.2 Create `requirements.txt` by running `pip freeze > requirements.txt` from the venv.
+250: - [x] 2.8 Set up GitHub branch protection on `main`: require PR, require CI pass, no force push.x
+366:       - `ChartRepository.upload(symbol, chart_bytes)` → presigned_url, `get_url(symbol, key)`
+396: - [ ] 4.15 **NetworkX/SQLite** — `app/db/embedded/correlation_graph.py`:
+397:       - `CorrelationGraphRepository.update_edge(sym_a, sym_b, correlation)`, `get_neighbors(symbol, min_correlation)`, `get_graph()` → nx.Graph
+402:       - `TickerGraphRepository.create_ticker(ticker)`, `add_sector_membership(symbol, sector)`
+403:       - `TickerGraphRepository.add_correlation(sym_a, sym_b, r)`, `get_peers(symbol)`
+404:       - `InsiderGraphRepository.add_transaction(person, symbol, transaction_type)`
+442: - [ ] 5.2 Create `app/core/config.py` — `Settings` class with pydantic-settings, reading all
+464: - [ ] 5.18 Open http://localhost:8080/docs — verify the Swagger UI loads with all routes.
+480: curl http://localhost:8080/docs           # HTML page loads
+492: - [ ] 6.1 Register yfinance API keys in `.env` (none needed — yfinance requires no key).
+507: - [ ] 6.10 Start the ARQ worker: `python -m arq app.workers.scheduler.WorkerSettings`
+567: - sentence-transformers: https://www.sbert.net/docs/quickstart.html
+710: - [ ] 11.12 Implement `app/services/prediction_client.py` — gRPC client with circuit breaker.
+721: - grpcio: https://grpc.io/docs/languages/python/quickstart/
+789: **Goal:** Discord bot running with all slash commands implemented. Chart images generating.
+796: - [ ] 13.2 Add Guild ID to `.env`: `DISCORD_GUILD_ID=<your-server-id>`
+800: - [ ] 13.5 Implement the chart image generator (from README_2 Module 9 code snippet).
+801: - [ ] 13.6 Implement pagination for `/watchlist`, `/news`, `/reddit` using `discord.ui.View`
+802:        with `discord.ui.Button` for Next/Previous.
+804: - [ ] 13.8 Test each slash command in the test Discord server. Verify chart image is sent as
+805:        an attachment for `/chart AAPL 1m`.
+816: - `/chart AAPL 1m` → candlestick chart image attached
+822: ## Phase 14 — Web Dashboard
+824: **Goal:** React + Vite SPA running. Home page shows prediction cards. Ticker detail view with
+825: candlestick chart and tabs. Real-time WebSocket updates working.
+827: - [ ] 14.1 Initialize the web dashboard: `cd web_dashboard && npm create vite@latest . -- --template react-ts`
+828: - [ ] 14.2 Install dependencies: `npm install @reduxjs/toolkit react-redux recharts @tanstack/react-query
+829:        react-router-dom axios dayjs`
+835: - [ ] 14.7 Implement the Home page with the `WatchlistGrid` and `TickerCard` components.
+836: - [ ] 14.8 Implement the `TickerDetailDrawer` with `CandlestickChart` (Recharts `ComposedChart`).
+839: - [ ] 14.11 Implement the `Settings` page with alert config table, flag toggles, and quota gauges.
+843: - [ ] 14.14 Build for production: `npm run build` — verify bundle sizes are reasonable.
+844: - [ ] 14.15 Serve the production build from FastAPI: `StaticFiles(directory="web_dashboard/dist")`.
+847: - Recharts: https://recharts.org/en-US/
+848: - RTK Query: https://redux-toolkit.js.org/rtk-query/overview
+849: - react-router-dom v6: https://reactrouter.com/en/main
+853: cd web_dashboard && npm run build
+854: # Expected: build succeeds, no TypeScript errors
+859: # Expected: web dashboard loads, prediction cards visible, ticker detail chart opens on click
+866: **Goal:** React Native CLI bare workflow app running on iOS simulator or Android emulator.
+869: - [ ] 15.1 Set up React Native CLI environment:
+872:        - Install `react-native-cli`: `npm install -g react-native@latest`
+873: - [ ] 15.2 Initialize the project: `cd mobile_app && npx react-native init MarketPulseMobile --template react-native-template-typescript`
+874: - [ ] 15.3 Install dependencies: `npm install @react-navigation/native @react-navigation/bottom-tabs
+875:        react-native-screens react-native-safe-area-context react-native-vector-icons
+876:        react-native-onesignal @tanstack/react-query axios dayjs`
+880: - [ ] 15.6 Configure OneSignal: follow the React Native SDK setup guide. iOS requires APNs
+886: - React Native CLI setup: https://reactnative.dev/docs/environment-setup
+887: - OneSignal React Native SDK: https://documentation.onesignal.com/docs/react-native-sdk
+890: - App builds and runs on simulator/emulator without errors.
+914: - Alexa Skills Kit: https://developer.amazon.com/en-US/docs/alexa/alexa-skills-kit-sdk-for-python/overview.html
+942: **Goal:** All five export formats (CSV, PDF, JSON, NDJSON, XML) working from the web dashboard.
+946: - [ ] 18.3 Implement PDF export using `reportlab` (header, prediction summary, candlestick chart image).
+950: - [ ] 18.7 Add "Export" button to the ticker detail page in the web dashboard.
+957: (optional — requires Twilio). Discord account linking working.
+962:        return either JWT (no 2FA) or `{requires_2fa: true}`.
+974: **Goal:** All 25 paradigm demo panels in the web dashboard are functional with live data.
+976: - [ ] 20.1 Build each panel described in README_4 Part 1, panels 1–25.
+999: ## Phase 22 — Test Suite
+1028: admin paradigm console to show real charts and real numbers.
+1098:        - Web dashboard loads (LCP) < 2s on first load
+1121: 6. The web dashboard, Discord bot, mobile app, and at least one voice integration are all
+1123: 7. The test suite runs with ≥ 80% coverage and 0 failures.
+
+--- docs\README_6_DEPLOYMENT_RESOURCES.md ---
+53: | MinIO object storage | 8 GB | Charts, model files, Parquet archives |
+103: | React + Vite dev server | (native, not Docker) | — | 400 MB | 800 MB | 5173 |
+108: predictions; all other phases do not require it.
+114: **Role:** Databases that require high reliability and persistence. This node is the most
+164: **Role:** The FastAPI backend, ARQ workers, Discord bot, OPA, and observability dashboards.
+178: | Grafana | mp-grafana | 512 MB | 400 MB | 2 GB (dashboards) | 3000 | always |
+230: arq app.workers.ingestion.WorkerSettings
+233: arq app.workers.predictions.WorkerSettings
+236: arq app.workers.notifications.WorkerSettings
+247: All ML inference is CPU-based (ONNX Runtime). No GPU required on this node.
+273: **Elasticsearch production settings (`/etc/elasticsearch/jvm.options.d/heap.options`):**
+308: All require keep-alive pings to avoid free-tier shutdown.
+310: | Service | Purpose | Free Tier Limits | Keep-Alive Requirement | Keep-Alive Schedule |
+313: | Neo4j AuraDB Free | Ticker relationship graph, insider transaction graph | 200K nodes, 400K relationships, 200MB | Activity within 30 days or DB paused | Nightly relationship count query at 03:05 UTC |
+321: | FRED (St. Louis Fed) | Macro economic indicators | Unlimited free | No keep-alive needed | — |
+329: from app.db.neo4j.ticker_graph import TickerGraphRepository
+337:     repo = TickerGraphRepository()
+341: class WorkerSettings:
+389:       │ MongoDB   27017│  │ ChromaDB 8000 │ │ (graph DB)    │
+433: | MinIO (charts) | 0.5 GB | 1 GB | 1.5 GB | 2.5 GB | ~50 KB/chart × 25 tickers × daily |
+467: | Valkey | Memory used | > 700 MB | Review TTL policies; consider moving cold cache entries to PostgreSQL |
+480: All variables read from `.env` at startup via `pydantic-settings`. Group them into `.env` exactly
+568: INFLUX_TOKEN=                    # Generate from InfluxDB UI after first start
+580: NETWORKX_SQLITE_PATH=data/correlation_graph.db
+604: ML_CIRCUIT_BREAKER_THRESHOLD=3   # Failures before circuit opens
+605: ML_CIRCUIT_BREAKER_TIMEOUT=60    # Seconds before retry
+642: FRED_API_KEY=                    # fred.stlouisfed.org/api
+647: ONESIGNAL_APP_ID=                # onesignal.com dashboard
+648: ONESIGNAL_REST_API_KEY=          # onesignal.com dashboard
+670: DISCORD_GUILD_ID=                # Right-click server → Copy Server ID
+683: CLOUDFLARE_ACCOUNT_ID=           # Cloudflare dashboard
+801: docker build -t ghcr.io/you/marketpulse-api:$(git rev-parse --short HEAD) .
+837: docker build -t ghcr.io/you/marketpulse-ml:$(git rev-parse --short HEAD) ./ml_sidecar
+860: # Update Cloudflare to return maintenance page, or
+934: | 16686 | Jaeger UI | Node 2 | HTTP | Admin only (VPN) |
+942: Admin-only services (Grafana, MinIO Console, Jaeger UI) require VPN access to the Proxmox LAN.
+
+--- docs\README_7_COURSE.md ---
+2: > One plain-English lesson before each build phase. No assumed knowledge.
+4: > Read the lesson, then build the phase. The exercise for each lesson is in README_8.
+24:   same, regardless of who wrote it. You stop arguing about spaces and focus on logic.
+75: **Document store (MongoDB).** Relational databases require a fixed schema — every row in a table
+89: builds an inverted index, enabling full-text search across millions of documents in milliseconds.
+91: operation — exactly what Elasticsearch is built for.
+93: **Time-series database (InfluxDB).** Like TimescaleDB but purpose-built for metrics and
+100: files (blobs). MinIO is a self-hosted version of Amazon S3. MarketPulse stores candlestick chart
+103: **Graph databases (NetworkX + Neo4j).** In a relational database, relationships are implicit (a
+104: foreign key). In a graph database, relationships are first-class data. NetworkX is an in-memory
+105: Python graph library. Neo4j is a production graph database. MarketPulse uses them to store: which
+107: have traded in which stocks. Graph queries like "find all tickers that are correlated with AAPL
+108: and have been upgraded by an analyst this week" are trivial in a graph database and nightmarish
+121: - Elasticsearch inverted index: https://www.elastic.co/guide/en/elasticsearch/reference/current/documents-indices.html
+137: **GitHub Actions.** A free CI/CD system built into GitHub. You write a YAML file describing
+143: CI pipeline must pass, and at least one human must review it." This prevents accidentally
+149: production. The test suite catches these regressions automatically on every push.
+152: - GitHub Actions quickstart: https://docs.github.com/en/actions/quickstart
+200: ready, flip the flag — no deployment required.
+273: `asyncpg` has a built-in pool. The MarketPulse pool size is set in config based on expected
+328: This generates the `add_column` / `drop_column` calls automatically. You review the output and
+358: dashboard, mobile app, Discord bot, and voice integrations. This lesson covers what makes FastAPI
+368: uses a Pydantic model for validation. Pydantic checks that every required field is present, every
+370: with a missing required field, FastAPI returns a 422 Unprocessable Entity with a clear error
+374: route definitions and Pydantic models. Visit `/docs` and you get a Swagger UI where you can read
+397: **What this is about:** Every chart, every indicator, every ML prediction in MarketPulse starts
+410: charting library, every technical analysis library speaks OHLCV.
+414: tick data requires massive infrastructure. Daily OHLCV achieves 90% of the predictive signal
+465: rule-based sentiment analyzer that runs in microseconds. It was built for social media text and
+508: - PRAW quickstart: https://praw.readthedocs.io/en/stable/getting_started/quick_start.html
+513: ## Lesson 9 — Technical Indicators: What the Charts Are Saying
+533: and 26-day). When the short MA crosses above the long MA, momentum is building upward. When it
+534: crosses below, momentum is building downward. The "signal line" is a 9-day EMA of the MACD line.
+547: MarketPulse requires a minimum of 200 days of OHLCV history before computing indicators for a
+572: - "But" contrast ("The earnings were good, but guidance was weak" — the part after "but" gets
+673: native libraries and doesn't require the training libraries to be installed. The inference
+682: **Circuit breaker.** If the ML sidecar crashes or is slow, the FastAPI backend's gRPC client
+683: opens a circuit breaker after 3 consecutive failures. For the next 60 seconds, all prediction
+685: seconds, the circuit "half-opens" and tries one request to see if the sidecar has recovered.
+690: These explanations are stored in MongoDB and shown in the dashboard's "Why" tab.
+738: ## Lesson 13 — The Discord Bot: Commands, Embeds, and Charts
+745: and appear in the Discord autocomplete menu. The `@bot.tree.command()` decorator registers a
+754: **Chart generation.** When a user runs `/chart AAPL 1m`, the bot:
+761: `mplfinance` renders publication-quality candlestick charts with volume bars. It supports
+777: ## Lesson 14 — The Web Dashboard: React, State Management, and Real-Time Updates
+779: **What this is about:** The web dashboard is a React single-page application that talks to the
+782: **React + Vite.** React is a JavaScript/TypeScript library for building user interfaces from
+783: components. Vite is a build tool that replaces Create React App — it's significantly faster at
+784: both dev-server startup and production builds.
+788: layer built on top of Redux that handles caching, invalidation, and background refetching. When
+795: **Real-time updates via WebSocket.** The dashboard subscribes to a WebSocket connection at
+797: prediction changes. The frontend dispatches these as Redux actions that update the store
+798: immediately without a full page reload. This is how the dashboard shows "live" price updates.
+802: checking. The MarketPulse frontend defines TypeScript interfaces for every API response shape.
+803: When the API changes a field name, TypeScript catches all the frontend places that use the old
+806: **Progressive disclosure.** The UI reveals complexity only when the user asks for it:
+807: - Home page: just a grid of ticker cards with direction and confidence
+808: - Click a ticker card: the detail drawer slides in (still the same page, no navigation)
+816: - React: https://react.dev/learn
+817: - Vite: https://vitejs.dev/guide/
+819: - RTK Query: https://redux-toolkit.js.org/rtk-query/overview
+823: ## Lesson 15 — The Mobile App: React Native CLI and Push Notifications
+825: **What this is about:** The mobile app is a React Native bare workflow application. This lesson
+829: build systems. It's fast to start but limits which native modules you can use. The "bare workflow"
+830: (React Native CLI) gives you full access to the native build systems. MarketPulse uses the bare
+846: - React Native CLI setup: https://reactnative.dev/docs/environment-setup
+847: - OneSignal React Native: https://documentation.onesignal.com/docs/react-native-sdk
+872: **Cloudflare Tunnel.** Both Alexa and Google require your fulfillment endpoint to be accessible
+879: - Alexa Skills Kit Python SDK: https://developer.amazon.com/en-US/docs/alexa/alexa-skills-kit-sdk-for-python/overview.html
+891: `feedparser.parse(url)` handles all the quirks of different RSS versions, encoding issues, and
+925: the ticker and generation timestamp, a price chart image (fetched from MinIO), a table of all
+926: four horizon predictions, and a sentiment timeline chart.
+929: algorithm, a spreadsheet with a JSON import feature, another dashboard), JSON is the cleanest
+938: financial tools (Bloomberg Terminal add-ins, some bank APIs) require XML format.
+956: authenticated — no database lookup required to verify who the user is. This makes JWTs fast
+969: 4. From then on, logging in requires the current 6-digit code
+998: **What this is about:** The admin paradigm console is a section of the web dashboard that makes
+1007: - The circuit breaker panel shows ML sidecar health and the current circuit state
+1010: from a black box into a teaching tool. When you build something yourself, you understand it. When
+1045: **What this is about:** A test suite that gives you genuine confidence, not just high coverage
+1069: suite catches them. A test suite with 90% line coverage might miss 40% of injected mutations —
+1072: **OPA policy testing.** OPA has a built-in test framework. You write Rego unit tests that
+1136: **Smoke testing.** A smoke test is a quick sanity check: does the system start up? Do the
+1152: **Why this phase matters.** Building each piece individually and building a running system are
+
+--- docs\README_8_EXERCISES.md ---
+3: > These files describe exactly what to build and verify. Do not look up a solution — work from
+13: **What you build:** A script named `ex00_verify_env.py` saved in the `exercises/` directory.
+26: Build a list of `Check` instances covering every package below. The import name is what you
+80: **Locust requires special handling.** Locust calls `gevent.monkey.patch_all()` the moment it is
+90: - `__import__` built-in: https://docs.python.org/3/library/functions.html#import__
+116: **What you build:** A script named `ex01_ohlcv_rsi.py`. Fetch 2 years of real AAPL daily OHLCV
+150: RSI series. Build a comparison DataFrame with three columns: `scratch` (your result), `ta` (the
+196: **What you build:** A script named `ex02_news_vader.py`. Fetch the 20 most recent English-language
+203: **Prerequisite:** A free NewsAPI key from https://newsapi.org. Store it as the environment variable
+213: set to `"publishedAt"`, `language` set to `"en"`, `pageSize` set to `20`, and `apiKey` set to
+235: - requests library: https://docs.python-requests.org/en/latest/user/quickstart/
+247:   [+0.872] Apple beats Q3 earnings estimates, raises guidance for Q4 revenue
+266: **What you build:** A script named `ex03_reddit_praw.py`. Connect to Reddit using PRAW. Fetch the
+273: **Prerequisites:** A Reddit developer app (https://www.reddit.com/prefs/apps — create a "script"
+309: - PRAW quickstart: https://praw.readthedocs.io/en/stable/getting_started/quick_start.html
+310: - PRAW Subreddit.hot: https://praw.readthedocs.io/en/stable/code_overview/models/subreddit.html
+337: **What you build:** A script named `ex04_indicators.py`. Fetch 1 year of MSFT daily OHLCV.
+373: **Step 3 — Validate and display.** Build an ordered dict mapping human-readable names to column
+409: **What you build:** A script named `ex05_lstm.py`. Fetch 2 years of GOOGL daily close prices.
+410: Transform to log returns. Build a PyTorch Dataset that produces 30-day input windows and binary
+426: **Step 2 — Dataset class.** Subclass `torch.utils.data.Dataset`. In `__init__`, build two lists:
+431: feature dimension expected by the LSTM. Convert `y` to a `torch.long` tensor (required by
+432: `CrossEntropyLoss`). Use `WINDOW = 30`. Implement `__len__` and `__getitem__` as required by the
+436: would cause look-ahead bias. Create two `Subset` views of the full dataset using
+496: **What you build:** A `.proto` schema file, a gRPC server in `ex06_server.py`, and a gRPC client
+538: creates a stub, builds a `PredictionRequest`, records the start time with `time.perf_counter()`,
+550: - grpc_tools.protoc usage: https://grpc.io/docs/languages/python/quickstart/
+551: - Protocol Buffers language guide: https://protobuf.dev/programming-guides/proto3/
+581: ## Exercise 7 — Candlestick Chart with mplfinance
+583: **Lesson it reinforces:** Discord bot chart generation (Lesson 13)
+585: **What you build:** A script named `ex07_chart.py`. Fetch 90 days of NVDA OHLCV. Compute a 50-day
+587: chart with volume bars, SMA-50, and Bollinger Band overlays using mplfinance. Save as PNG. Verify
+598: `Volume`) into a copy — mplfinance requires these exact column names, capitalized.
+607: **Step 3 — Build addplots.** Use `mpf.make_addplot()` to create three overlay plot objects:
+614: `type="candle"`, `style="charles"`, `title="NVDA — 90 Day Chart"`, `ylabel="Price (USD)"`,
+616: `savefig=dict(fname="exercises/nvda_chart.png", dpi=100, bbox_inches="tight")`. The `volume=True`
+641: Chart saved to: exercises/nvda_chart.png
+643: ✓ Chart generated successfully (under 200 KB)
+646:   1. Upload this PNG to MinIO: minio_client.put_object('charts', 'NVDA_chart.png', ...)
+647:   2. Get presigned URL: minio_client.presigned_get_object('charts', 'NVDA_chart.png')
+657: **What you build:** A running Discord bot in `ex08_discord_bot.py` with one slash command
+664: **Prerequisites:** Create a Discord application and bot at https://discord.com/developers/applications.
+668: and `DISCORD_GUILD_ID` (your server's ID — right-click the server name → Copy Server ID) in
+680: **Step 2 — Guild sync.** Override `setup_hook` (an async method called before the bot connects).
+681: Inside it, create a `discord.Object(id=GUILD_ID)` representing your test server. Call
+682: `self.tree.copy_global_to(guild=guild)` to copy any global commands to the guild, then
+683: `await self.tree.sync(guild=guild)` to push them to Discord. Print the number of synced commands.
+684: Guild sync is instant (used for development). Global sync takes up to 1 hour.
+693: and format it as `"YYYY-MM-DD HH:MM UTC"`. Build a `discord.Embed` with a title, description
+703: - discord.py quickstart: https://discordpy.readthedocs.io/en/stable/quickstart.html
+714: Synced 1 command(s) to guild 123456789
+732: **What you build:** A script named `ex09_totp.py` that walks through the complete TOTP enrollment
+755: response so the frontend can display it inline.
+812: **What you build:** An async script named `ex10_quota_counter.py`. Connect to Valkey. Simulate
+819: **Prerequisite:** Valkey running locally. Start it with:
+894: **What you build:** A script named `ex11_sec_edgar.py`. Fetch the 10 most recent Form 4 (insider
+900: **No API key required.** The SEC EDGAR API is freely accessible — you only need a descriptive
+907: **Step 1 — Set the User-Agent header.** The SEC requires all API consumers to include a
+914: AAPL's CIK is `0000320193`. The EDGAR API requires it zero-padded to 10 digits in URLs.
+937: - SEC EDGAR API overview: https://www.sec.gov/developer
+979: **What you build:** A script named `ex12_fred_macro.py`. Query FRED for four macro series over
+981: summary table of recent monthly observations. Save a 2×2 subplot chart as a PNG file.
+985: **Prerequisite:** A free FRED API key from https://fred.stlouisfed.org/api/. Store it as
+994: makes a GET request to `https://api.stlouisfed.org/fred/series/observations`. Pass four query
+999: Build a `pd.Series` mapping date strings to float values, set the name to the `name` parameter,
+1027: - FRED API documentation: https://fred.stlouisfed.org/docs/api/fred/
+1028: - FRED series observations endpoint: https://fred.stlouisfed.org/docs/api/fred/series_observations.html
+1029: - Series IDs reference: https://fred.stlouisfed.org/categories
+1052: Chart saved to: exercises/ex12_fred_macro.png
+1067: **What you build:** Initialize Alembic in the MarketPulse project, create a migration that adds a
+1073: **Prerequisites:** MarketPulse PostgreSQL container running
+1219: | 7 | Candlestick chart | 13 | mplfinance, addplot, file size | 45 min |
+1227: **Total exercise time: ~8 hours** (spread across all 26 build phases)

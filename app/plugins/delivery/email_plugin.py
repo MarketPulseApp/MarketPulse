@@ -8,7 +8,7 @@ Required env vars:
     SMTP_HOST - e.g. smtp.gmail.com
     SMTP_PORT - e.g. 587
     SMTP_USER - e.g. MarketPulse.Alerts.Grafana@gmail.com
-    SMTP_PASSWPRD - Gmail app password
+    SMTP_PASSWORD - Gmail app password
     SMTP_FROM - display sender address (usually same as SMTP_USER)
 """
 
@@ -21,14 +21,15 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from app.core.config import settings
-from app.plugins.delivery.base import AlertDeliveryPlugin, AlertPayload, DeliveryResult
+from app.domain.alert import Alert, DeliveryResult
+from app.plugins.delivery.base import AlertDeliveryPlugin
 
 
 class EmailDeliveryPlugin(AlertDeliveryPlugin):
     channel_name = "email"
     feature_flag = "delivery.email"
 
-    async def deliver(self, alert: AlertPayload, recipient: str) -> DeliveryResult:
+    async def deliver(self, alert: Alert, recipient: str) -> DeliveryResult:
         try:
             msg = self._build_message(alert, recipient)
             self._send(msg, recipient)
@@ -48,7 +49,7 @@ class EmailDeliveryPlugin(AlertDeliveryPlugin):
         """Verify SMTP credentials are accepted without sending anything."""
         try:
             context = ssl.create_default_context()
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            with smtplib.SMTP(settings.SMTP_HOST, int(settings.SMTP_PORT)) as server:
                 server.starttls(context=context)
                 server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             return True
@@ -56,26 +57,35 @@ class EmailDeliveryPlugin(AlertDeliveryPlugin):
             return False
 
     # helpers
-    def _build_message(self, alert: AlertPayload, recipient: str) -> MIMEMultipart:
-        severity_emoji = {"info": "ℹ️", "warning": "⚠️", "critical": "🔴"}.get(alert.severity, "📢")
+    def _build_message(self, alert: Alert, recipient: str) -> MIMEMultipart:
+        # Map severity based on alert_type or default to info since Alert doesn't have severity
+        severity = "info"
+        if "critical" in alert.alert_type.lower():
+            severity = "critical"
+        elif "warning" in alert.alert_type.lower():
+            severity = "warning"
+
+        severity_emoji = {"info": "ℹ️", "warning": "⚠️", "critical": "🔴"}.get(severity, "📢")
 
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"{severity_emoji} [MarketPulse] {alert.title}"
+        msg["Subject"] = f"{severity_emoji} [MarketPulse] {alert.alert_type}"
         msg["From"] = settings.SMTP_FROM
         msg["To"] = recipient
 
+        triggered_at_iso = alert.triggered_at.isoformat() if alert.triggered_at else "Unknown"
+
         plain = (
-            f"{alert.body}\n\n"
+            f"{alert.message}\n\n"
             f"Symbol:       {alert.symbol or 'N/A'}\n"
-            f"Severity:     {alert.severity.upper()}\n"
-            f"Triggered At: {alert.triggered_at.isoformat()}\n"
+            f"Severity:     {severity.upper()}\n"
+            f"Triggered At: {triggered_at_iso}\n"
         )
         msg.attach(MIMEText(plain, "plain"))
         return msg
 
     def _send(self, msg: MIMEMultipart, recipient: str) -> None:
         context = ssl.create_default_context()
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with smtplib.SMTP(settings.SMTP_HOST, int(settings.SMTP_PORT)) as server:
             server.starttls(context=context)
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_FROM, recipient, msg.as_string())

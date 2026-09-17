@@ -23,26 +23,3 @@ class SentimentScore:
             return max_val
         else:
             return value
-
-
-@dataclass
-class NewsArticle:
-    symbol: str
-    headline: str
-    url: str
-    source: str
-    published_at: datetime
-    finbert_score: float | None = None
-    summary: str | None = None
-
-
-@dataclass
-class RedditPost:
-    symbol: str
-    subreddit: str
-    title: str
-    url: str
-    score: int
-    created_utc: datetime
-    comment_count: int = 0
-    vader_score: float | None = None

@@ -22,9 +22,9 @@ async def get_flag_from_db(flag_name: str) -> bool | None:
     Fetch a single flag's enabled status from PostgreSQL.
     Returns None if the flag does not exist in the database.
 
-    Replace with a real FeatureFlagRepository query in Phase 4.
+    Replace with a real query in Phase 4.
     """
-    pass
+    return None
 
 
 async def get_all_flags_from_db() -> list[dict]:
@@ -35,7 +35,7 @@ async def get_all_flags_from_db() -> list[dict]:
 
     Replace with a real FeatureFlagRepository query in Phase 4.
     """
-    pass
+    return []
 
 
 # Public API
@@ -50,6 +50,8 @@ async def sync_flags_to_cache():
     Valkey cache wins over PostgreSQL until the next sync runs.
     """
     flags = await get_all_flags_from_db()
+    if redis is None:
+        return
     pipe = redis.pipeline()
     for flag in flags:
         pipe.set(_cache_key(flag["name"]), "1" if flag["is_enabled"] else "0")
@@ -69,10 +71,10 @@ async def is_enabled(flag_name: str, default: bool = False) -> bool:
     PostgreSQL. This is intentional — PostgreSQL is only authoritative
     after the next sync_flags_to_cache() run.
     """
-    cached = await redis.get(_cache_key(flag_name))
-
-    if cached is not None:
-        return cached == "1"
+    if redis is not None:
+        cached = await redis.get(_cache_key(flag_name))
+        if cached is not None:
+            return cached == "1"
 
     db_value = await get_flag_from_db(flag_name)
 

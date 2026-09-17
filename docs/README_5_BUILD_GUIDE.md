@@ -321,7 +321,7 @@ entire application will work with.
 - [x] 3.6 Implement `app/domain/quota.py` — `APIQuota`, `QuotaStatus`.
 - [x] 3.7 Implement `app/domain/feature_vector.py` — `FeatureVector` with validation that
       all values are finite floats and the schema version matches the expected constant.
-- [ ] 3.8 Write unit tests for all domain objects. Focus on edge cases:
+- [x] 3.8 Write unit tests for all domain objects. Focus on edge cases:
       - `Prediction.is_actionable()` returns False for confidence = 74.9, True for 75.0.
       - `FeatureVector` raises `ValueError` for NaN values.
       - `AlertConfig` with no channels raises `ValueError` on construction.

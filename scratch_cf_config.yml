@@ -1,0 +1,7 @@
+tunnel: 63a2bd8a-d9f3-482f-9180-139af9fd4113
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: dashboard.brodiepasker.xyz
+    service: http://web_dashboard:3000
+  - service: http_status:404

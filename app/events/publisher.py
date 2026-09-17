@@ -13,4 +13,5 @@ async def publish_event(event) -> None:
         {k: v.isoformat() if isinstance(v, datetime) else v for k, v in raw.items()},
         use_bin_type=True,
     )
-    await redis.publish(CHANNEL, payload)
+    if redis is not None:
+        await redis.publish(CHANNEL, payload)

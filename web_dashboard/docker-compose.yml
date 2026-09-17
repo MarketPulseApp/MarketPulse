@@ -1,0 +1,7 @@
+services:
+  web:
+    build: .
+    container_name: marketpulse-web
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

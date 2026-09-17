@@ -26,6 +26,7 @@ def create_client() -> Redis:
     redis = Redis(
         host=settings.VALKEY_HOST,
         port=settings.VALKEY_PORT,
+        password=settings.VALKEY_PASSWORD or None,
         decode_responses=True,
         max_connections=10,
     )
@@ -37,8 +38,9 @@ async def close_client() -> None:
     Close the module-level client and release the connection pool.
     """
     global redis
-    await redis.aclose()
-    redis = None
+    if redis is not None:
+        await redis.aclose()
+        redis = None
 
 
 @asynccontextmanager

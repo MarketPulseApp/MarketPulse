@@ -1,0 +1,2 @@
+ALTER TABLE alert_configs 
+ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();

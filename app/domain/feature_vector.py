@@ -9,7 +9,7 @@ CURRENT_SCHEMA_VERSION = "1.0"
 class FeatureVector:
     values: list[float] = field(default_factory=list)
     schema_version: str = ""
-    assembled_at: datetime = datetime.now(UTC)
+    assembled_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __post_init__(self) -> None:
         for v in self.values:

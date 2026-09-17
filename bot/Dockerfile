@@ -4,7 +4,8 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir \
     discord.py==2.4.0 \
-    httpx==0.27.2
+    httpx==0.27.2 \
+    asyncpg==0.29.0
 
 COPY . .
 

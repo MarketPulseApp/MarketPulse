@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -42,7 +42,7 @@ class DataSourcePlugin(ABC):
     async def health_check(self) -> bool:
         """Returns True if source is reachable. Default: try a minimal fetch."""
         try:
-            await self.fetch(["AAPL"], datetime.utcnow())
+            await self.fetch(["AAPL"], datetime.now(UTC))
             return True
         except Exception:
             return False

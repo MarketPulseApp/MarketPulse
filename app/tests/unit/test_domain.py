@@ -12,9 +12,11 @@ import pytest
 
 from app.domain.alert import Alert, AlertConfig
 from app.domain.feature_vector import CURRENT_SCHEMA_VERSION, FeatureVector
+from app.domain.news import NewsArticle
 from app.domain.prediction import HorizonPrediction, Prediction, PredictionOutcome
 from app.domain.quota import APIQuota, QuotaStatus
-from app.domain.sentiment import NewsArticle, RedditPost, SentimentScore
+from app.domain.reddit import RedditPost
+from app.domain.sentiment import SentimentScore
 from app.domain.ticker import CryptoTicker, IndexTicker, StockTicker, Ticker
 from app.domain.watchlist import WatchList
 from app.events.types import PredictionChangedEvent
@@ -217,27 +219,31 @@ class TestNewsArticle:
 class TestRedditPost:
     def test_reddit_post_stores_fields(self):
         post = RedditPost(
+            post_id="123",
+            body="some text",
             symbol="GME",
             subreddit="wallstreetbets",
             title="GME to the moon",
             url="https://reddit.com/r/wallstreetbets/post",
             score=5000,
-            created_utc=datetime.now(UTC),
+            created_at=datetime.now(UTC),
         )
         assert post.subreddit == "wallstreetbets"
         assert post.score == 5000
 
     def test_optional_fields_default_to_none_or_zero(self):
         post = RedditPost(
+            post_id="123",
+            body="some text",
             symbol="GME",
             subreddit="wallstreetbets",
             title="GME to the moon",
             url="https://reddit.com/r/wallstreetbets/post",
             score=100,
-            created_utc=datetime.now(UTC),
+            created_at=datetime.now(UTC),
         )
-        assert post.vader_score is None
-        assert post.comment_count == 0
+        assert post.sentiment_score is None
+        assert post.num_comments == 0
 
 
 # ── Alert ─────────────────────────────────────────────────────────────────────

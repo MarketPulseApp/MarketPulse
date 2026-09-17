@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from app.domain.alert import DeliveryResult
+from app.domain.alert import Alert, DeliveryResult
 
 
 @dataclass
@@ -40,7 +40,7 @@ class AlertDeliveryPlugin(ABC):
     feature_flag: str
 
     @abstractmethod
-    async def deliver(self, alert: AlertPayload, recipient: str) -> DeliveryResult:
+    async def deliver(self, alert: Alert, recipient: str) -> DeliveryResult:
         """
         Send `alert` to `recipient`.
 

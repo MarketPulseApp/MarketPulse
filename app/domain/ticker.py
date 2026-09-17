@@ -7,6 +7,7 @@ from typing import Literal
 class Ticker:
     symbol: str = ""
     name: str = ""
+    currency: str = "USD"
     asset_type: Literal["stock", "crypto", "etf", "index"] = "stock"
     sector: str | None = None
     industry: str | None = None

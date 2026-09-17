@@ -11,3 +11,5 @@ secrets/
 .pytest_cache/
 dist/
 build/
+remote.env
+*.tar.gz
