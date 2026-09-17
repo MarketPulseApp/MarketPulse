@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, TrendingUp, Settings, LogOut, X, Shield, Network, MessageCircle, Globe, Users, Calendar, Database, Brain } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, Settings, Key, LogOut, X, Shield, Network, MessageCircle, Globe, Users, Calendar, Database, Brain, BookOpen } from 'lucide-react';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -132,6 +132,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           <span>Training</span>
         </NavLink>
         <NavLink
+          to="/quotas"
+          onClick={onClose}
+          className={({ isActive }) =>
+            `flex items-center space-x-3 p-2 rounded-lg transition-colors ${
+              isActive ? 'bg-indigo-50 text-indigo-700 dark:bg-blue-900 dark:text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`
+          }
+        >
+          <Key size={20} />
+          <span>API Quotas</span>
+        </NavLink>
+        <NavLink
           to="/settings"
           onClick={onClose}
           className={({ isActive }) =>
@@ -143,6 +155,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           <Settings size={20} />
           <span>Settings</span>
         </NavLink>
+        <a
+          href="/api/docs"
+          target="_blank"
+          onClick={onClose}
+          className="flex items-center space-x-3 p-2 rounded-lg transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <BookOpen size={20} />
+          <span>API Documentation</span>
+        </a>
         <NavLink
           to="/admin"
           onClick={onClose}

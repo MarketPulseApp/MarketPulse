@@ -2,7 +2,7 @@
 
 export const AdminConsole = () => {
     return (
-        <div className="p-6">
+        <div className="p-6 text-[13px]">
             <h1 className="text-2xl font-bold mb-4">Admin Console</h1>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded shadow-sm border">
@@ -22,7 +22,7 @@ export const AdminConsole = () => {
                         </li>
                     </ul>
                 </div>
-                
+
                 <div className="bg-white p-6 rounded shadow-sm border">
                     <h2 className="text-lg font-semibold mb-4 border-b pb-2">User Management</h2>
                     <div className="flex justify-between items-center mb-4">

@@ -23,6 +23,7 @@ class APIQuota:
     last_reset_daily: datetime | None = None
     last_reset_monthly: datetime | None = None
     updated_at: datetime | None = None
+    api_key: str | None = None
 
     def is_exceeded(self) -> bool:
         if self.is_unlimited:

@@ -94,3 +94,13 @@ async def get_current_active_superuser(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not enough privileges")
     return current_user
+
+
+import asyncpg
+from fastapi import Depends
+
+from app.db.postgres.quota import QuotaRepository
+
+
+async def get_quota_repository(pg_pool: asyncpg.Pool = Depends(get_db_pool)) -> QuotaRepository:
+    return QuotaRepository(pg_pool)

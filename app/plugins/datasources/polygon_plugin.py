@@ -12,12 +12,17 @@ class PolygonPlugin(DataSourcePlugin):
     feature_flag = "datasource.polygon"
 
     async def fetch(self, symbols: list[str], since: datetime) -> list[IngestRecord]:
-        api_key = os.environ.get("POLYGON_API_KEY", "demo")
+        from app.infrastructure.valkey import redis
+
+        api_key_bytes = await redis.get(f"api_key:{self.source_name}") if redis else None
+        api_key = api_key_bytes.decode("utf-8") if api_key_bytes else None
+        if not api_key:
+            api_key = os.environ.get("POLYGON_API_KEY", "demo")
         records = []
-        
+
         since_str = since.strftime("%Y-%m-%d")
         now_str = datetime.now(UTC).strftime("%Y-%m-%d")
-        
+
         async with httpx.AsyncClient() as client:
             for symbol in symbols:
                 url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{since_str}/{now_str}"
@@ -28,7 +33,17 @@ class PolygonPlugin(DataSourcePlugin):
                     results = data.get("results", [])
                 except Exception as e:
                     print(f"Polygon mock for {symbol}: {e}")
-                    results = [{"t": int(datetime.now(UTC).timestamp() * 1000), "o": 150.0, "h": 155.0, "l": 149.0, "c": 153.0, "v": 1000000, "vw": 152.5}]
+                    results = [
+                        {
+                            "t": int(datetime.now(UTC).timestamp() * 1000),
+                            "o": 150.0,
+                            "h": 155.0,
+                            "l": 149.0,
+                            "c": 153.0,
+                            "v": 1000000,
+                            "vw": 152.5,
+                        }
+                    ]
                 for res in results:
                     ts_ms = res.get("t")
                     if not ts_ms:
@@ -40,10 +55,10 @@ class PolygonPlugin(DataSourcePlugin):
                         ticker_symbols=[symbol],
                         timestamp=dt,
                         payload=res,
-                        raw_id=f"{symbol}-{ts_ms}"
+                        raw_id=f"{symbol}-{ts_ms}",
                     )
                     records.append(record)
-                    
+
         return records
 
     def get_quota_info(self) -> QuotaInfo | None:

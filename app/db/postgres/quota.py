@@ -4,36 +4,78 @@ from app.domain.quota import APIQuota
 
 
 class QuotaRepository:
-    def __init__(self, pool: asyncpg.Pool) -> None:
+    def __init__(self, pool: asyncpg.Pool):
         self.pool = pool
-
-    async def increment(self, source: str, daily: bool) -> None:
-        """
-        daily = True increments daily_used, otherwise, increments monthly_used
-        is quota is set as is_unlimited x
-        """
-        async with self.pool.acquire() as conn:
-            await conn.execute("SELECT fn_increment_quota($1, $2)", source, daily)
 
     async def get_all(self) -> list[APIQuota]:
         async with self.pool.acquire() as conn:
-            rows = await conn.fetch("SELECT * FROM fn_get_all_quotas()")
+            rows = await conn.fetch("SELECT * FROM fn_get_all_quotas();")
             return [
                 APIQuota(
-                    source_name=row["source"],
-                    daily_used=row["daily_used"],
-                    monthly_used=row["monthly_used"],
-                    is_unlimited=row["is_unlimited"],
-                    low_threshold=row["low_threshold"],
-                    daily_limit=row["daily_limit"],
-                    monthly_limit=row["monthly_limit"],
-                    last_reset_daily=row["last_reset_daily"],
-                    last_reset_monthly=row["last_reset_monthly"],
-                    updated_at=row["updated_at"],
+                    source_name=r["source"],
+                    daily_used=r["daily_used"],
+                    monthly_used=r["monthly_used"],
+                    is_unlimited=r["is_unlimited"],
+                    daily_limit=r["daily_limit"],
+                    monthly_limit=r["monthly_limit"],
+                    api_key=r["api_key"],
                 )
-                for row in rows
+                for r in rows
             ]
 
-    async def reset(self, source: str) -> None:
+    async def get_by_source(self, source_name: str) -> APIQuota | None:
         async with self.pool.acquire() as conn:
-            await conn.execute("SELECT fn_reset_quota($1)", source)
+            row = await conn.fetchrow(
+                "SELECT * FROM fn_get_all_quotas() WHERE source = $1;", source_name
+            )
+            if not row:
+                return None
+            return APIQuota(
+                source_name=row["source"],
+                daily_used=row["daily_used"],
+                monthly_used=row["monthly_used"],
+                is_unlimited=row["is_unlimited"],
+                daily_limit=row["daily_limit"],
+                monthly_limit=row["monthly_limit"],
+                api_key=row["api_key"],
+            )
+
+    async def update_quota(
+        self,
+        source_name: str,
+        daily_limit: int | None,
+        monthly_limit: int | None,
+        api_key: str | None,
+    ):
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """UPDATE api_quotas
+                   SET daily_limit = $1, monthly_limit = $2, api_key = $3, updated_at = NOW()
+                   WHERE source = $4""",
+                daily_limit,
+                monthly_limit,
+                api_key,
+                source_name,
+            )
+
+    async def create_quota(
+        self,
+        source_name: str,
+        daily_limit: int | None,
+        monthly_limit: int | None,
+        api_key: str | None,
+    ):
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO api_quotas (source, daily_limit, monthly_limit, api_key, is_unlimited)
+                   VALUES ($1, $2, $3, $4, $5)
+                   ON CONFLICT (source) DO UPDATE
+                   SET daily_limit = EXCLUDED.daily_limit,
+                       monthly_limit = EXCLUDED.monthly_limit,
+                       api_key = EXCLUDED.api_key""",
+                source_name,
+                daily_limit,
+                monthly_limit,
+                api_key,
+                (daily_limit is None and monthly_limit is None),
+            )

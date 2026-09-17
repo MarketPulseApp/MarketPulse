@@ -17,6 +17,7 @@ from app.routers import (
     market_data,
     paper_trading,
     predictions,
+    quotas,
     sentiment,
     settings,
     watchlist,
@@ -70,7 +71,7 @@ async def lifespan(app):
 
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="MarketPulse API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="MarketPulse API", version="0.1.0", lifespan=lifespan, root_path="/api")
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,5 +101,6 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(paper_trading.router, prefix="/paper-trading", tags=["paper-trading"])
 app.include_router(ws.router, prefix="/ws", tags=["websocket"])
 app.include_router(settings.router, prefix="/api/v1/settings", tags=["settings"])
+app.include_router(quotas.router, prefix="/api/v1/quotas", tags=["quotas"])
 app.include_router(data_stream.router, prefix="/api/v1/data-stream", tags=["data-stream"])
 app.include_router(datasources.router, prefix="/api/v1/datasources", tags=["datasources"])

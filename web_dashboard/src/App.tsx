@@ -16,6 +16,7 @@ import { Why } from './pages/Why';
 import { Analytics } from './pages/Analytics';
 import { RawData } from './pages/RawData';
 import { Training } from './pages/Training';
+import { Quotas } from './pages/Quotas';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -50,6 +51,7 @@ function App() {
           <Route path="earnings" element={<EarningsCalendar />} />
           <Route path="raw-data" element={<RawData />} />
           <Route path="training" element={<Training />} />
+          <Route path="quotas" element={<Quotas />} />
         </Route>
       </Routes>
     </BrowserRouter>

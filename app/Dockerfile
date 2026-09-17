@@ -37,11 +37,9 @@ RUN pip install --no-cache-dir \
     newsapi-python==0.2.7 \
     elasticsearch==9.5.0 \
     "numpy<2" \
-    yfinance
+    yfinance \
+    cryptography==43.0.1
 
 COPY . /opt/marketpulse/app/
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
-
-
-
