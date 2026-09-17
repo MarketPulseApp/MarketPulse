@@ -170,7 +170,7 @@ async def cron_poll_all_sources(ctx: dict) -> None:
     plugins = await get_enabled_datasources()
 
     active_symbols = ["AAPL", "MSFT", "TSLA"]
-    since = datetime.now(UTC)
+    from datetime import timedelta; since = datetime.now(UTC) - timedelta(days=7)
 
     for plugin in plugins:
         await ctx["redis"].enqueue_job(
@@ -241,3 +241,4 @@ class WorkerSettings:
         if neo4j_driver:
             await neo4j_driver.close()
             logger.info("Neo4j connection closed")
+
